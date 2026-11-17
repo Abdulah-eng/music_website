@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Play,
@@ -11,6 +11,7 @@ import {
   Sparkles,
   ArrowRight,
   Disc3,
+  RotateCcw,
 } from 'lucide-react';
 import type { AudioTrackProject } from '@/data/portfolio';
 
@@ -24,6 +25,10 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAfter, setIsAfter] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const filteredTracks = tracks.filter((t) => {
     if (filterType === 'all') return true;
@@ -32,8 +37,90 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
 
   const activeTrack = filteredTracks[activeTrackIndex] || filteredTracks[0];
 
+  // Sync audio source when track changes
+  useEffect(() => {
+    if (audioRef.current && activeTrack) {
+      audioRef.current.src = activeTrack.src;
+      audioRef.current.load();
+      if (isPlaying) {
+        audioRef.current.play().catch(() => setIsPlaying(false));
+      }
+    }
+  }, [activeTrack]);
+
+  // Adjust volume / gain when switching Before / After
+  useEffect(() => {
+    if (audioRef.current) {
+      // In "Before" mode, volume is reduced to simulate unmastered -16 LUFS
+      // In "After" mode, full volume commercial -9 LUFS
+      audioRef.current.volume = isAfter ? 1.0 : 0.58;
+    }
+  }, [isAfter]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch((e) => {
+        console.error('Audio playback error', e);
+        setIsPlaying(false);
+      });
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+      if (audioRef.current.duration && !isNaN(audioRef.current.duration)) {
+        setDuration(audioRef.current.duration);
+      }
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current && !isNaN(audioRef.current.duration)) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  };
+
+  const formatTime = (secs: number) => {
+    if (isNaN(secs) || secs === 0) return '00:00';
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || duration === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+    const newTime = percentage * duration;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
   return (
     <div className="audio-catalog-wrapper">
+      {/* Hidden real audio element */}
+      <audio
+        ref={audioRef}
+        src={activeTrack?.src}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={handleEnded}
+        preload="metadata"
+      />
+
       {/* Category Tabs */}
       <div className="audio-tab-bar">
         <button
@@ -42,7 +129,6 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
           onClick={() => {
             setFilterType('all');
             setActiveTrackIndex(0);
-            setIsPlaying(false);
           }}
         >
           All 6 Studio Samples
@@ -53,7 +139,6 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
           onClick={() => {
             setFilterType('mastering');
             setActiveTrackIndex(0);
-            setIsPlaying(false);
           }}
         >
           Track Mastering (3)
@@ -64,7 +149,6 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
           onClick={() => {
             setFilterType('mixing');
             setActiveTrackIndex(0);
-            setIsPlaying(false);
           }}
         >
           Music Mixing (3)
@@ -75,7 +159,7 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
         {/* Playlist Tracklist Column */}
         <div className="audio-tracklist-col">
           <div className="tracklist-header">
-            <Disc3 size={16} className="disc-icon" />
+            <Disc3 size={16} className={isPlaying ? 'disc-icon spinning' : 'disc-icon'} />
             <span>STUDIO SESSION TRACKLIST ({filteredTracks.length})</span>
           </div>
 
@@ -94,7 +178,7 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
                   role="button"
                 >
                   <span className="track-number">
-                    {String(idx + 1).padStart(2, '0')}
+                    {isSelected && isPlaying ? '▶' : String(idx + 1).padStart(2, '0')}
                   </span>
                   <div className="track-info">
                     <h4>{track.title}</h4>
@@ -112,13 +196,14 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
           <div className="audio-console-col">
             <div className="console-topline">
               <span className="console-badge">
-                <Sparkles size={13} /> {activeTrack.type.toUpperCase()} CONSOLE
+                <Sparkles size={13} /> {activeTrack.type.toUpperCase()} CONSOLE · {isAfter ? 'MASTERED (+4.2dB True-Peak)' : 'RAW UNPROCESSED MIX'}
               </span>
               <div className="audio-ab-toggle">
                 <button
                   type="button"
                   className={!isAfter ? 'ab-btn active' : 'ab-btn'}
                   onClick={() => setIsAfter(false)}
+                  title="Switch to Raw Mixdown (Before)"
                 >
                   Before (Raw Mix)
                 </button>
@@ -126,6 +211,7 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
                   type="button"
                   className={isAfter ? 'ab-btn active' : 'ab-btn'}
                   onClick={() => setIsAfter(true)}
+                  title="Switch to Mastered Polish (After)"
                 >
                   After (Mastered)
                 </button>
@@ -140,26 +226,41 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
               <p className="console-desc">{activeTrack.description}</p>
             </div>
 
-            {/* Custom Visual Player */}
+            {/* Custom Interactive Player */}
             <div className="custom-player-bar">
               <button
                 type="button"
                 className="player-play-btn"
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={togglePlay}
                 aria-label={isPlaying ? 'Pause sample' : 'Play sample'}
               >
                 {isPlaying ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '4px' }} />}
               </button>
 
-              <div className="player-waveform">
+              <div
+                className="player-waveform clickable"
+                onClick={handleSeek}
+                title="Click anywhere to seek"
+              >
                 {Array.from({ length: 42 }, (_, i) => {
+                  const progressRatio = duration > 0 ? currentTime / duration : 0;
+                  const barProgress = i / 42;
+                  const isPassed = barProgress <= progressRatio;
                   const baseHeight = isAfter
                     ? 25 + ((i * 11) % 75)
                     : 15 + ((i * 5) % 35);
                   return (
                     <span
                       key={i}
-                      className={isPlaying ? 'bar active' : 'bar'}
+                      className={
+                        isPlaying
+                          ? isPassed
+                            ? 'bar active passed'
+                            : 'bar active'
+                          : isPassed
+                          ? 'bar passed'
+                          : 'bar'
+                      }
                       style={{
                         height: `${baseHeight}%`,
                         animationDelay: `${(i % 8) * 0.09}s`,
@@ -170,17 +271,17 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
               </div>
 
               <div className="player-time">
-                <span>{isPlaying ? '01:28' : '00:00'}</span> / <span>03:45</span>
+                <span>{formatTime(currentTime)}</span> / <span>{formatTime(duration || 16)}</span>
               </div>
             </div>
 
             {/* Real-time Engineering Comparison Notes */}
             <div className="comparison-notes-grid">
-              <div className="note-card before-note">
+              <div className={!isAfter ? 'note-card before-note active-highlight' : 'note-card before-note'}>
                 <small>BEFORE (SOURCE RECORDING)</small>
                 <p>{activeTrack.beforeNotes}</p>
               </div>
-              <div className="note-card after-note">
+              <div className={isAfter ? 'note-card after-note active-highlight' : 'note-card after-note'}>
                 <small>AFTER (MAINAHTUNESTEAM POLISH)</small>
                 <p>{activeTrack.afterNotes}</p>
               </div>
@@ -193,11 +294,11 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
               </div>
               <div>
                 <small>LOUDNESS</small>
-                <span>{isAfter ? activeTrack.lufs : '-16.5 LUFS'}</span>
+                <span>{isAfter ? activeTrack.lufs : '-16.5 LUFS (Raw)'}</span>
               </div>
               <div>
                 <small>OUTBOARD GEAR</small>
-                <span>Analogue EQ · Tube Compression · Linear Peak</span>
+                <span>Analogue EQ · Tube Compression · True Peak Limiter</span>
               </div>
             </div>
 

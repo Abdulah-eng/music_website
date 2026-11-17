@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Layers,
   Palette,
@@ -22,16 +23,22 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Shield,
+  UploadCloud,
+  Film,
+  FileAudio,
+  FileImage,
+  FileVideo,
 } from 'lucide-react';
 import { services } from '@/data/services';
-import { artworkCatalog, audioCatalog, webProjectsCatalog } from '@/data/portfolio';
+import { artworkCatalog, audioCatalog, videoCatalog, webProjectsCatalog } from '@/data/portfolio';
 import { teamMembers } from '@/data/team';
 import { testimonials } from '@/data/testimonials';
 
 export default function AdminManagementStudio() {
   // Navigation tab state
-  const [activeTab, setActiveTab] = useState<'services' | 'artworks' | 'audio' | 'team' | 'testimonials' | 'add-item' | 'security'>('services');
+  const [activeTab, setActiveTab] = useState<
+    'services' | 'artworks' | 'audio' | 'videos' | 'team' | 'testimonials' | 'upload-sample' | 'add-item' | 'security'
+  >('services');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Authentication & session state
@@ -53,29 +60,23 @@ export default function AdminManagementStudio() {
   const [pwdChangeSuccess, setPwdChangeSuccess] = useState('');
   const [pwdChangeError, setPwdChangeError] = useState('');
 
-  // New item generator form state
-  const [generatorType, setGeneratorType] = useState<'artwork' | 'team' | 'testimonial'>('artwork');
-  const [genArtwork, setGenArtwork] = useState({
-    title: '',
-    artist: '',
-    style: '',
-    concept: '',
-  });
-  const [genTeam, setGenTeam] = useState({
-    name: '',
-    role: '',
-    department: '',
-    bio: '',
-  });
-  const [genTestimonial, setGenTestimonial] = useState({
-    clientName: '',
-    role: '',
-    location: '',
-    serviceEngaged: '',
-    quote: '',
-    verifiedOutcome: '',
-  });
+  // Sample File Upload State
+  const [uploadCategory, setUploadCategory] = useState<'artwork' | 'audio' | 'video'>('artwork');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadArtist, setUploadArtist] = useState('');
+  const [uploadDesc, setUploadDesc] = useState('');
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadSuccessMsg, setUploadSuccessMsg] = useState('');
+  const [uploadErrorMsg, setUploadErrorMsg] = useState('');
+  const [uploadedUrl, setUploadedUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Code generator form state
+  const [generatorType, setGeneratorType] = useState<'artwork' | 'team' | 'testimonial'>('artwork');
+  const [genArtwork, setGenArtwork] = useState({ title: '', artist: '', style: '', concept: '' });
+  const [genTeam, setGenTeam] = useState({ name: '', role: '', department: '', bio: '' });
+  const [genTestimonial, setGenTestimonial] = useState({ clientName: '', role: '', location: '', serviceEngaged: '', quote: '', verifiedOutcome: '' });
   const [generatedJson, setGeneratedJson] = useState('');
 
   // Helper: Retrieve active stored password or default 'helloworld'
@@ -186,6 +187,47 @@ export default function AdminManagementStudio() {
       } catch (e) {
         setPwdChangeError('Failed to reset password.');
       }
+    }
+  };
+
+  // Direct File Upload Handler
+  const handleFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploadErrorMsg('');
+    setUploadSuccessMsg('');
+
+    if (!uploadFile) {
+      setUploadErrorMsg('Please select a file to upload.');
+      return;
+    }
+
+    setUploadLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('category', uploadCategory);
+      formData.append('title', uploadTitle || uploadFile.name);
+      formData.append('artist', uploadArtist);
+      formData.append('description', uploadDesc);
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      setUploadSuccessMsg(data.message || 'File uploaded successfully!');
+      setUploadedUrl(data.publicPath);
+      setUploadFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err: any) {
+      setUploadErrorMsg(err.message || 'An error occurred during upload.');
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -341,8 +383,21 @@ export default function AdminManagementStudio() {
           Agency Content <em>Management Studio.</em>
         </h1>
         <p>
-          Manage, preview, and update all 53 services, portfolio artworks, audio samples, team members, and testimonials without writing code.
+          Your central command center to manage, preview, and upload all 53 services, cover artworks, audio masters, AI music videos, team members, and testimonials.
         </p>
+
+        {/* Purpose Explanation Banner */}
+        <div className="admin-purpose-banner">
+          <div className="purpose-icon">
+            <Sparkles size={22} />
+          </div>
+          <div className="purpose-text">
+            <h4>What is the Admin Management Studio For?</h4>
+            <p>
+              This studio allows you to <b>upload new samples</b> (cover artworks, mixing/mastering audio tracks, AI music videos) as you finish new client projects. You can preview live media, inspect audio calibrations, manage testimonials, and control security credentials—all from one place without modifying code.
+            </p>
+          </div>
+        </div>
 
         {/* Admin Session Control Bar */}
         <div className="admin-session-bar">
@@ -352,6 +407,13 @@ export default function AdminManagementStudio() {
             <span className="session-tag">PROTECTED SESSION</span>
           </div>
           <div className="session-actions">
+            <button
+              type="button"
+              className="session-btn"
+              onClick={() => setActiveTab('upload-sample')}
+            >
+              <UploadCloud size={13} /> Upload New Sample
+            </button>
             <button
               type="button"
               className="session-btn"
@@ -373,6 +435,7 @@ export default function AdminManagementStudio() {
           <span><b>53</b> Services</span>
           <span><b>19</b> Artworks</span>
           <span><b>06</b> Audio Samples</span>
+          <span><b>02</b> AI Videos</span>
           <span><b>08</b> Web Projects</span>
           <span><b>04</b> Testimonials</span>
           <span><b>01</b> Executive Team Lead</span>
@@ -404,6 +467,13 @@ export default function AdminManagementStudio() {
           </button>
           <button
             type="button"
+            className={activeTab === 'videos' ? 'admin-nav-tab active' : 'admin-nav-tab'}
+            onClick={() => setActiveTab('videos')}
+          >
+            <Film size={14} /> AI Music Videos ({videoCatalog.length})
+          </button>
+          <button
+            type="button"
             className={activeTab === 'team' ? 'admin-nav-tab active' : 'admin-nav-tab'}
             onClick={() => setActiveTab('team')}
           >
@@ -418,6 +488,13 @@ export default function AdminManagementStudio() {
           </button>
           <button
             type="button"
+            className={activeTab === 'upload-sample' ? 'admin-nav-tab active' : 'admin-nav-tab'}
+            onClick={() => setActiveTab('upload-sample')}
+          >
+            <UploadCloud size={14} /> Upload Samples
+          </button>
+          <button
+            type="button"
             className={activeTab === 'security' ? 'admin-nav-tab active' : 'admin-nav-tab'}
             onClick={() => setActiveTab('security')}
           >
@@ -428,7 +505,7 @@ export default function AdminManagementStudio() {
             className={activeTab === 'add-item' ? 'admin-nav-tab add-btn active' : 'admin-nav-tab add-btn'}
             onClick={() => setActiveTab('add-item')}
           >
-            <PlusCircle size={14} /> Add New Entry Generator
+            <PlusCircle size={14} /> Entry Code Generator
           </button>
         </div>
 
@@ -484,7 +561,7 @@ export default function AdminManagementStudio() {
             <div className="panel-header">
               <div>
                 <h2>19 Preserved Cover Artworks</h2>
-                <p>Original creative artwork catalog. Managed in <code>data/portfolio.ts</code>.</p>
+                <p>Original creative artwork catalog rendered with high-resolution visual masters.</p>
               </div>
               <Link href="/visuals#cover-artwork" target="_blank" className="button button-outline">
                 View in Review My Works ↗
@@ -494,6 +571,15 @@ export default function AdminManagementStudio() {
             <div className="admin-cards-grid">
               {artworkCatalog.map((art, idx) => (
                 <div className="admin-art-card" key={art.id}>
+                  <div className="admin-art-thumb-wrap">
+                    <Image
+                      src={`/artwork/${art.image}`}
+                      alt={art.title}
+                      width={300}
+                      height={300}
+                      className="admin-art-img"
+                    />
+                  </div>
                   <span className="art-idx">0{idx + 1}</span>
                   <h3>{art.title}</h3>
                   <p>Artist: <strong>{art.artist}</strong></p>
@@ -518,7 +604,7 @@ export default function AdminManagementStudio() {
             <div className="panel-header">
               <div>
                 <h2>6 Studio Audio Samples (Mastering &amp; Mixing)</h2>
-                <p>High-resolution audio tracks with A/B before/after comparison notes.</p>
+                <p>High-resolution playable audio masters with LUFS calibrations and A/B before/after comparison notes.</p>
               </div>
               <Link href="/visuals#mastering" target="_blank" className="button button-outline">
                 Listen on Live Console ↗
@@ -531,6 +617,10 @@ export default function AdminManagementStudio() {
                   <span className="audio-type-badge">{t.type.toUpperCase()}</span>
                   <h3>{t.title}</h3>
                   <p>Artist / Session: <strong>{t.artist || 'MainahtunesTeam Studio Session'}</strong></p>
+                  
+                  {/* Real In-Admin Audio Player */}
+                  <audio controls src={t.src} className="admin-audio-player" preload="metadata" />
+
                   <div className="audio-lufs-badge">
                     <span>Loudness: <b>{t.lufs}</b></span>
                     <span>Format: <b>{t.format}</b></span>
@@ -551,7 +641,37 @@ export default function AdminManagementStudio() {
           </div>
         )}
 
-        {/* Tab 4: Team & Leadership */}
+        {/* Tab 4: AI Music Videos */}
+        {activeTab === 'videos' && (
+          <div className="admin-panel">
+            <div className="panel-header">
+              <div>
+                <h2>Original AI Music Video Productions ({videoCatalog.length})</h2>
+                <p>Playable video reels with high-definition motion cinematography.</p>
+              </div>
+              <Link href="/visuals#ai-music-video" target="_blank" className="button button-outline">
+                View in Review My Works ↗
+              </Link>
+            </div>
+
+            <div className="admin-cards-grid">
+              {videoCatalog.map((v) => (
+                <div className="admin-audio-card" key={v.id}>
+                  <video controls src={v.videoSrc} className="service-sample-video" preload="metadata" />
+                  <span className="style-tag" style={{ marginTop: '8px' }}>{v.type}</span>
+                  <h3>{v.title}</h3>
+                  <p>{v.description}</p>
+                  <div className="art-file-info">
+                    <small>FILE PATH:</small>
+                    <code>{v.videoSrc}</code>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: Team & Leadership */}
         {activeTab === 'team' && (
           <div className="admin-panel">
             <div className="panel-header">
@@ -587,7 +707,7 @@ export default function AdminManagementStudio() {
           </div>
         )}
 
-        {/* Tab 5: Testimonials */}
+        {/* Tab 6: Testimonials */}
         {activeTab === 'testimonials' && (
           <div className="admin-panel">
             <div className="panel-header">
@@ -617,7 +737,174 @@ export default function AdminManagementStudio() {
           </div>
         )}
 
-        {/* Tab 6: Security & Password Management */}
+        {/* Tab 7: Upload New Sample */}
+        {activeTab === 'upload-sample' && (
+          <div className="admin-panel">
+            <div className="panel-header">
+              <div>
+                <h2>Upload New Project Samples (Media Asset Uploader)</h2>
+                <p>Directly upload new cover artworks, audio stems, and video reels to your agency portfolio.</p>
+              </div>
+            </div>
+
+            <div className="upload-sample-grid">
+              <div className="upload-form-card">
+                {uploadSuccessMsg && (
+                  <div className="security-alert success" role="alert">
+                    <CheckCircle2 size={16} />
+                    <div>
+                      <span>{uploadSuccessMsg}</span>
+                      {uploadedUrl && (
+                        <div style={{ marginTop: '4px', fontSize: '11px' }}>
+                          Available at: <code>{uploadedUrl}</code>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {uploadErrorMsg && (
+                  <div className="security-alert error" role="alert">
+                    <AlertCircle size={16} />
+                    <span>{uploadErrorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleFileUpload} className="security-form">
+                  <label>
+                    Asset Category
+                    <div className="gen-type-selector">
+                      <button
+                        type="button"
+                        className={uploadCategory === 'artwork' ? 'gen-type active' : 'gen-type'}
+                        onClick={() => setUploadCategory('artwork')}
+                      >
+                        <FileImage size={13} style={{ display: 'inline', marginRight: '5px' }} /> Cover Artwork (.png, .jpg)
+                      </button>
+                      <button
+                        type="button"
+                        className={uploadCategory === 'audio' ? 'gen-type active' : 'gen-type'}
+                        onClick={() => setUploadCategory('audio')}
+                      >
+                        <FileAudio size={13} style={{ display: 'inline', marginRight: '5px' }} /> Audio Sample (.mp3, .wav)
+                      </button>
+                      <button
+                        type="button"
+                        className={uploadCategory === 'video' ? 'gen-type active' : 'gen-type'}
+                        onClick={() => setUploadCategory('video')}
+                      >
+                        <FileVideo size={13} style={{ display: 'inline', marginRight: '5px' }} /> Video Reel (.mp4)
+                      </button>
+                    </div>
+                  </label>
+
+                  {/* Dropzone */}
+                  <div
+                    className="file-dropzone-box"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept={
+                        uploadCategory === 'artwork'
+                          ? 'image/png,image/jpeg,image/webp'
+                          : uploadCategory === 'audio'
+                          ? 'audio/mp3,audio/wav,audio/mpeg'
+                          : 'video/mp4,video/webm'
+                      }
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setUploadFile(e.target.files[0]);
+                          if (!uploadTitle) {
+                            setUploadTitle(e.target.files[0].name.replace(/\.[^/.]+$/, ''));
+                          }
+                        }
+                      }}
+                    />
+                    <div className="dropzone-label">
+                      <UploadCloud size={32} className="text-orange" />
+                      <b>Click to browse or drag file here</b>
+                      <span>
+                        {uploadCategory === 'artwork'
+                          ? 'Supports PNG, JPG, WebP up to 3000x3000px'
+                          : uploadCategory === 'audio'
+                          ? 'Supports 24-bit WAV & MP3 audio files'
+                          : 'Supports H.264 MP4 & WebM video files'}
+                      </span>
+                    </div>
+
+                    {uploadFile && (
+                      <div className="selected-file-badge">
+                        <Check size={14} className="text-orange" />
+                        <span>Selected: <b>{uploadFile.name}</b> ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <label>
+                    Project / Release Title
+                    <input
+                      type="text"
+                      required
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                      placeholder="e.g. Neon Horizon"
+                    />
+                  </label>
+
+                  <label>
+                    Artist / Client Name
+                    <input
+                      type="text"
+                      value={uploadArtist}
+                      onChange={(e) => setUploadArtist(e.target.value)}
+                      placeholder="e.g. Marcus Vance"
+                    />
+                  </label>
+
+                  <label>
+                    Project Overview / Engineering Notes
+                    <textarea
+                      rows={3}
+                      value={uploadDesc}
+                      onChange={(e) => setUploadDesc(e.target.value)}
+                      placeholder="Describe the sonic processing, artistic concept, or client deliverables..."
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="button button-orange"
+                    disabled={uploadLoading || !uploadFile}
+                  >
+                    {uploadLoading ? 'Uploading & Processing...' : 'Upload & Publish Sample ↗'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="security-info-card">
+                <h3>How File Uploads Work</h3>
+                <ul className="security-tips-list">
+                  <li>
+                    <b>Automatic Destination Routing:</b> Cover artworks automatically go into <code>/public/artwork/</code>, audio tracks into <code>/public/audio/</code>, and video reels into <code>/public/videos/</code>.
+                  </li>
+                  <li>
+                    <b>Direct Live URL:</b> Once uploaded, your asset is immediately accessible at <code>https://yourdomain.com/[category]/[filename]</code>.
+                  </li>
+                  <li>
+                    <b>Zero Build Re-compiles:</b> Files uploaded to public directories are served instantly by Next.js without taking down the site.
+                  </li>
+                  <li>
+                    <b>Adding to Catalog:</b> Use the <b>Entry Code Generator</b> tab to generate the matching catalog snippet if you want the sample permanently indexed in <code>data/portfolio.ts</code>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 8: Security & Password Management */}
         {activeTab === 'security' && (
           <div className="admin-panel">
             <div className="panel-header">
@@ -751,7 +1038,7 @@ export default function AdminManagementStudio() {
           </div>
         )}
 
-        {/* Tab 7: New Entry Generator */}
+        {/* Tab 9: New Entry Code Generator */}
         {activeTab === 'add-item' && (
           <div className="admin-panel">
             <div className="panel-header">

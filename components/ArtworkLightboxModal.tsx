@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, ExternalLink, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, ExternalLink, ArrowRight, Sparkles, CheckCircle2, ZoomIn, Download } from 'lucide-react';
 import type { ArtworkProject } from '@/data/portfolio';
 
 interface Props {
@@ -53,14 +53,19 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
             }}
           >
             <div className="artwork-image-container">
-              <div className="artwork-image-fallback">
-                <span className="art-thumb-title">{item.title}</span>
-                <span className="art-thumb-artist">{item.artist}</span>
-                <span className="art-thumb-tag">{item.style}</span>
+              <Image
+                src={`/artwork/${item.image}`}
+                alt={`${item.title} by ${item.artist}`}
+                width={500}
+                height={500}
+                className="artwork-thumb-img"
+                loading="lazy"
+              />
+              <div className="artwork-overlay-hover">
+                <span className="artwork-view-tag">
+                  <ZoomIn size={14} /> Full Resolution ↗
+                </span>
               </div>
-              <span className="artwork-view-tag">
-                Preview Full Resolution ↗
-              </span>
             </div>
 
             <div className="artwork-caption">
@@ -97,24 +102,25 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
 
             <div className="lightbox-grid">
               <div className="lightbox-art-display">
-                <div className="lightbox-canvas-art">
-                  <div className="canvas-gradient-overlay" />
-                  <div className="canvas-content">
-                    <span className="canvas-label">ORIGINAL APPROVED ARTWORK</span>
-                    <h2>{selectedArtwork.title}</h2>
-                    <p>{selectedArtwork.artist}</p>
-                    <span className="canvas-specs">3000 × 3000 PX · 300 DPI · RGB MASTER</span>
-                  </div>
+                <div className="lightbox-image-wrap">
+                  <Image
+                    src={`/artwork/${selectedArtwork.image}`}
+                    alt={`${selectedArtwork.title} by ${selectedArtwork.artist}`}
+                    width={900}
+                    height={900}
+                    className="lightbox-master-img"
+                    priority
+                  />
                 </div>
               </div>
 
               <div className="lightbox-details-panel">
                 <div className="lightbox-details-header">
                   <span className="sample-badge">
-                    <Sparkles size={13} /> {selectedArtwork.style}
+                    <Sparkles size={13} /> {selectedArtwork.style} · 3000 × 3000 PX MASTER
                   </span>
                   <h2>{selectedArtwork.title}</h2>
-                  <p className="artist-byline">Artist: <strong>{selectedArtwork.artist}</strong></p>
+                  <p className="artist-byline">Artist / Client: <strong>{selectedArtwork.artist}</strong></p>
                 </div>
 
                 <div className="concept-box">
@@ -123,7 +129,7 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
                 </div>
 
                 <div className="lightbox-specs-section">
-                  <small>DELIVERABLES PROVIDED</small>
+                  <small>DELIVERABLES DELIVERED TO CLIENT</small>
                   <ul>
                     {selectedArtwork.deliverables.map((d) => (
                       <li key={d}>
@@ -138,18 +144,18 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
                     href={`/contact?service=Album%20%26%20Single%20Cover%20Artwork&project=${encodeURIComponent(
                       selectedArtwork.title
                     )}`}
-                    className="button button-orange lightbox-cta"
-                    onClick={() => setSelectedArtwork(null)}
+                    className="button button-orange"
                   >
-                    Request Similar Cover Artwork <span>↗</span>
+                    Commission Similar Artwork <span>↗</span>
                   </Link>
-                  <Link
-                    href="/services/album-single-cover-artwork"
+                  <a
+                    href={`/artwork/${selectedArtwork.image}`}
+                    target="_blank"
+                    rel="noreferrer"
                     className="button button-outline"
-                    onClick={() => setSelectedArtwork(null)}
                   >
-                    Explore Artwork Service Details
-                  </Link>
+                    Open Master File ↗
+                  </a>
                 </div>
               </div>
             </div>
