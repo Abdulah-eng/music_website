@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ArrowUpRight, Mail, Instagram, Youtube, Music2, MessageCircle } from 'lucide-react';
+import { ArrowUpRight, Mail, MessageCircle } from 'lucide-react';
+import { siteConfig } from '@/data/siteConfig';
 
 export default function Footer() {
   return (
@@ -33,36 +34,35 @@ export default function Footer() {
           <Link href="/privacy">Privacy Policy</Link>
           <Link href="/terms">Terms of Service</Link>
           <div style={{ marginTop: '20px' }}>
-            <h4>COMMUNICATION</h4>
+            <h4>DIRECT EMAIL</h4>
             <a
-              href="mailto:contact.mainahtunesteam@gmail.com"
+              href={`mailto:${siteConfig.email}`}
               className="footer-email-link"
             >
               <Mail size={13} style={{ display: 'inline', marginRight: '6px' }} />
-              contact.mainahtunesteam@gmail.com
+              {siteConfig.email}
             </a>
           </div>
         </div>
 
         <div className="footer-links-col">
-          <h4>CONNECT &amp; SOCIAL</h4>
-          <div className="footer-social-links">
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
-              Instagram <ArrowUpRight size={12} />
-            </a>
-            <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
-              YouTube <ArrowUpRight size={12} />
-            </a>
-            <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">
-              TikTok <ArrowUpRight size={12} />
-            </a>
-            <a href="https://soundcloud.com" target="_blank" rel="noopener noreferrer">
-              SoundCloud <ArrowUpRight size={12} />
-            </a>
-            <a href="https://wa.me" target="_blank" rel="noopener noreferrer">
-              WhatsApp Direct <ArrowUpRight size={12} />
-            </a>
-          </div>
+          <h4>DIRECT SUPPORT &amp; CHAT</h4>
+          <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+            Direct 1-on-1 consultations with our senior creative director and engineers.
+          </p>
+          <a
+            href={siteConfig.whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-whatsapp-cta"
+          >
+            <MessageCircle size={16} />
+            <span>Chat on WhatsApp</span>
+            <ArrowUpRight size={13} />
+          </a>
+          <span style={{ display: 'block', fontSize: '11px', color: 'var(--muted)', marginTop: '10px' }}>
+            Available 24/7 for project enquiries &amp; artist consultations.
+          </span>
         </div>
       </div>
 

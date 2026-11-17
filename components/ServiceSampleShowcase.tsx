@@ -53,6 +53,8 @@ export default function ServiceSampleShowcase({ service }: Props) {
     if (slug.includes('poster') || slug.includes('flyer')) return '/artwork/side-streets-and-alley-ways.png';
     if (slug.includes('merchandise')) return '/artwork/most-valuable-steppa.png';
     if (slug.includes('epk')) return '/artwork/the-streets-made-me.png';
+    if (slug.includes('youtube')) return '/artwork/voice-of-the-streets.png';
+    if (slug.includes('copywriting') || slug.includes('brand-book')) return '/artwork/the-man-behind-the-moon.png';
     if (slug.includes('single')) return '/artwork/kiss-of-life.png';
     if (slug.includes('album')) return '/artwork/dont-wake-the-devil.png';
     return '/artwork/kiss-of-life.png';
@@ -101,6 +103,16 @@ export default function ServiceSampleShowcase({ service }: Props) {
   const handleEnded = () => {
     setIsPlaying(false);
     setCurrentTime(0);
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || duration === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+    const newTime = ratio * duration;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
   };
 
   const formatTime = (secs: number) => {
@@ -193,7 +205,12 @@ export default function ServiceSampleShowcase({ service }: Props) {
                 >
                   {isPlaying ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: '3px' }} />}
                 </button>
-                <div className="player-waveform">
+                <div
+                  className="player-waveform clickable-waveform"
+                  onClick={handleSeek}
+                  title="Click to seek / scrub audio"
+                  style={{ cursor: 'pointer' }}
+                >
                   {Array.from({ length: 48 }, (_, i) => {
                     const progressRatio = duration > 0 ? currentTime / duration : 0;
                     const isPassed = (i / 48) <= progressRatio;
@@ -290,15 +307,15 @@ export default function ServiceSampleShowcase({ service }: Props) {
         )}
 
         {/* =========================================================================
-            3. ARTWORK SAMPLES (Album Artwork, Posters, Flyers, Branding)
+            3. ARTWORK & BRANDING SAMPLES (Album Artwork, Posters, Flyers, Branding, Logos)
            ========================================================================= */}
-        {service.sampleType === 'artwork' && (
+        {(service.sampleType === 'artwork' || service.sampleType === 'branding') && (
           <div className="sample-card artwork-sample-card">
             <div className="sample-card-header">
               <span className="sample-badge">
-                <Sparkles size={12} /> APPROVED ORIGINAL COVER ARTWORK
+                <Sparkles size={12} /> {service.sampleType === 'branding' ? 'VERIFIED ARTIST IDENTITY & GRAPHIC DESIGN' : 'APPROVED ORIGINAL COVER ARTWORK'}
               </span>
-              <span className="format-tag">3000 x 3000 PX · 300 DPI MASTER</span>
+              <span className="format-tag">{service.sampleType === 'branding' ? 'VECTOR MASTER · RGB & CMYK PRINT · SOCIAL SUITE' : '3000 x 3000 PX · 300 DPI MASTER'}</span>
             </div>
 
             <div className="sample-card-body artwork-body">
@@ -316,22 +333,22 @@ export default function ServiceSampleShowcase({ service }: Props) {
               </div>
 
               <div className="artwork-info-side">
-                <span className="eyebrow">FEATURED VISUAL CASE STUDY</span>
+                <span className="eyebrow">{service.sampleType === 'branding' ? 'BRAND IDENTITY CASE STUDY' : 'FEATURED VISUAL CASE STUDY'}</span>
                 <h3>{service.sampleTitle}</h3>
                 <p className="lead-desc">{service.sampleDesc}</p>
 
                 <div className="artwork-specs-list">
                   <div>
-                    <small>RESOLUTION</small>
-                    <span>3000 × 3000 px (DSPs) &amp; 12&quot; Vinyl Print</span>
+                    <small>{service.sampleType === 'branding' ? 'DELIVERY SUITE' : 'RESOLUTION'}</small>
+                    <span>{service.sampleType === 'branding' ? 'Vector SVG, AI, EPS, High-Res PNG, Print PDF' : '3000 × 3000 px (DSPs) & 12" Vinyl Print'}</span>
                   </div>
                   <div>
-                    <small>COLOR PROFILE</small>
-                    <span>sRGB (Digital) &amp; CMYK / FOGRA39 (Print)</span>
+                    <small>COLOR PALETTE</small>
+                    <span>#101F39 (Navy), #F47713 (Orange), #FBF8EF (Cream)</span>
                   </div>
                   <div>
-                    <small>DELIVERABLES</small>
-                    <span>Front Cover, Vinyl Sleeve, Spotify Canvas Cut</span>
+                    <small>LICENSING</small>
+                    <span>100% Full Commercial Rights Transferred To Artist</span>
                   </div>
                 </div>
 
@@ -343,7 +360,7 @@ export default function ServiceSampleShowcase({ service }: Props) {
                     href={`/contact?service=${encodeURIComponent(service.name)}`}
                     className="button button-orange"
                   >
-                    Commission Similar Artwork <span>↗</span>
+                    Commission Similar Project <span>↗</span>
                   </Link>
                 </div>
               </div>
@@ -545,6 +562,36 @@ export default function ServiceSampleShowcase({ service }: Props) {
                 className="button button-orange"
               >
                 Plan Your Release Campaign <span>↗</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Fallback for any other type */}
+        {!['audio', 'video', 'artwork', 'branding', 'website', 'case-study'].includes(service.sampleType) && (
+          <div className="sample-card case-study-card">
+            <div className="sample-card-header">
+              <span className="sample-badge">
+                <Sparkles size={14} /> AGENCY PROJECT SHOWCASE
+              </span>
+              <span className="format-tag">MAINAHTUNESTEAM PRODUCTION STANDARD</span>
+            </div>
+            <div className="case-study-body">
+              <div className="case-study-meta">
+                <span className="eyebrow">FEATURED DELIVERABLE</span>
+                <h3>{service.sampleTitle || service.name}</h3>
+                <p>{service.sampleDesc || service.overview}</p>
+              </div>
+            </div>
+            <div className="sample-card-footer">
+              <Link href="/visuals" className="button button-outline">
+                Explore Full Portfolio Works <span>↗</span>
+              </Link>
+              <Link
+                href={`/contact?service=${encodeURIComponent(service.name)}`}
+                className="button button-orange"
+              >
+                Inquire About {service.name} <span>↗</span>
               </Link>
             </div>
           </div>

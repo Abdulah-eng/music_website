@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { categories, services, serviceBySlug } from '@/data/services';
 import ServiceSampleShowcase from '@/components/ServiceSampleShowcase';
-import { CheckCircle2, ArrowRight, Sparkles, Shield, Compass, ArrowUpRight } from 'lucide-react';
+import { siteConfig } from '@/data/siteConfig';
+import { CheckCircle2, ArrowRight, Sparkles, Shield, Compass, ArrowUpRight, MessageCircle } from 'lucide-react';
 
 type Props = { params: { slug: string } };
 
@@ -54,18 +55,23 @@ export default function ServiceDetail({ params }: Props) {
         <p className="detail-hero-lead">{service.intro}</p>
 
         <div className="actions service-hero-actions">
+          <a className="button button-orange" href="#samples">
+            Listen &amp; View Live Sample <span>↓</span>
+          </a>
           <Link
-            className="button button-orange"
+            className="button button-dark"
             href={`/contact?service=${encodeURIComponent(service.name)}`}
           >
             Enquire About This Service <span>↗</span>
           </Link>
-          <a className="button button-dark" href="#samples">
-            Explore Portfolio Samples <span>↓</span>
+          <a
+            className="button button-outline"
+            href={siteConfig.whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WhatsApp Consultation <span>↗</span>
           </a>
-          <Link className="button button-outline" href="/services">
-            View All 53 Services
-          </Link>
         </div>
 
         <div className="detail-meta">
@@ -73,6 +79,12 @@ export default function ServiceDetail({ params }: Props) {
           <span>MAINAHTUNESTEAM · INTERNATIONAL CREATIVE SOLUTIONS</span>
         </div>
       </section>
+
+      {/* =========================================================================
+          COMPULSORY PORTFOLIO SAMPLE SHOWCASE COMPONENT
+          (Placed immediately after Hero so visitors see real audio/artwork/video/web demos first!)
+         ========================================================================= */}
+      <ServiceSampleShowcase service={service} />
 
       {/* =========================================================================
           STRATEGIC BENEFITS SECTION
@@ -174,11 +186,6 @@ export default function ServiceDetail({ params }: Props) {
           ))}
         </div>
       </section>
-
-      {/* =========================================================================
-          COMPULSORY PORTFOLIO SAMPLE SHOWCASE COMPONENT
-         ========================================================================= */}
-      <ServiceSampleShowcase service={service} />
 
       {/* =========================================================================
           RELATED SERVICES IN SAME DISCIPLINE

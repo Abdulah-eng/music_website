@@ -3,7 +3,8 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, CheckCircle2, AlertCircle, ArrowUpRight, Clock, ShieldCheck, Send } from 'lucide-react';
+import { Mail, CheckCircle2, AlertCircle, ArrowUpRight, Clock, ShieldCheck, Send, MessageCircle } from 'lucide-react';
+import { siteConfig } from '@/data/siteConfig';
 
 const serviceOptions = [
   'General Enquiry & Custom Quote',
@@ -394,18 +395,40 @@ export default function Contact() {
       <section className="section contact-wrap">
         <div className="official-contact">
           <div>
-            <div className="eyebrow">DIRECT INBOX</div>
+            <div className="eyebrow">DIRECT INBOX &amp; INSTANT CHAT</div>
             <h2>Official Agency Communication</h2>
             <p>
-              For urgent bookings, collaborations, sync submissions, or press inquiries, contact our management desk directly.
+              For urgent bookings, consultations, collaborations, or quick questions, reach out via WhatsApp or email directly.
             </p>
           </div>
-          <a
-            href="mailto:contact.mainahtunesteam@gmail.com"
-            className="direct-mail-btn"
-          >
-            contact.mainahtunesteam@gmail.com <ArrowUpRight size={18} />
-          </a>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <a
+              href={`mailto:${siteConfig.email}`}
+              className="direct-mail-btn"
+            >
+              {siteConfig.email} <ArrowUpRight size={18} />
+            </a>
+            <a
+              href={siteConfig.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="direct-whatsapp-btn"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 20px',
+                background: '#25D366',
+                color: '#fff',
+                borderRadius: '6px',
+                fontWeight: 600,
+                fontSize: '13px',
+                textDecoration: 'none'
+              }}
+            >
+              <MessageCircle size={18} /> Chat on WhatsApp <ArrowUpRight size={16} />
+            </a>
+          </div>
         </div>
 
         <Suspense
