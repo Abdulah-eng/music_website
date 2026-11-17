@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Layers,
@@ -16,6 +16,13 @@ import {
   ShieldCheck,
   FileCode2,
   CheckCircle2,
+  Lock,
+  KeyRound,
+  LogOut,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Shield,
 } from 'lucide-react';
 import { services } from '@/data/services';
 import { artworkCatalog, audioCatalog, webProjectsCatalog } from '@/data/portfolio';
@@ -23,8 +30,28 @@ import { teamMembers } from '@/data/team';
 import { testimonials } from '@/data/testimonials';
 
 export default function AdminManagementStudio() {
-  const [activeTab, setActiveTab] = useState<'services' | 'artworks' | 'audio' | 'team' | 'testimonials' | 'add-item'>('services');
+  // Navigation tab state
+  const [activeTab, setActiveTab] = useState<'services' | 'artworks' | 'audio' | 'team' | 'testimonials' | 'add-item' | 'security'>('services');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Authentication & session state
+  const [isMounted, setIsMounted] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminUser, setAdminUser] = useState('admin');
+  const [loginUsername, setLoginUsername] = useState('admin');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+
+  // Change password form state
+  const [currentPwdInput, setCurrentPwdInput] = useState('');
+  const [newPwdInput, setNewPwdInput] = useState('');
+  const [confirmPwdInput, setConfirmPwdInput] = useState('');
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [pwdChangeSuccess, setPwdChangeSuccess] = useState('');
+  const [pwdChangeError, setPwdChangeError] = useState('');
 
   // New item generator form state
   const [generatorType, setGeneratorType] = useState<'artwork' | 'team' | 'testimonial'>('artwork');
@@ -50,6 +77,117 @@ export default function AdminManagementStudio() {
   });
 
   const [generatedJson, setGeneratedJson] = useState('');
+
+  // Helper: Retrieve active stored password or default 'helloworld'
+  const getStoredPassword = (): string => {
+    if (typeof window === 'undefined') return 'helloworld';
+    try {
+      return localStorage.getItem('mainahtunes_admin_pwd') || 'helloworld';
+    } catch {
+      return 'helloworld';
+    }
+  };
+
+  // Mount effect to check stored login session
+  useEffect(() => {
+    setIsMounted(true);
+    try {
+      const isAuth = localStorage.getItem('mainahtunes_admin_auth');
+      const savedUser = localStorage.getItem('mainahtunes_admin_user');
+      if (isAuth === 'true') {
+        setIsAuthenticated(true);
+        if (savedUser) setAdminUser(savedUser);
+      }
+    } catch (e) {
+      console.error('Error reading localStorage', e);
+    }
+  }, []);
+
+  // Handle Login
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    const activePwd = getStoredPassword();
+
+    if (loginPassword === activePwd) {
+      try {
+        localStorage.setItem('mainahtunes_admin_auth', 'true');
+        const user = loginUsername.trim() || 'admin';
+        localStorage.setItem('mainahtunes_admin_user', user);
+        localStorage.setItem('mainahtunes_admin_auth_time', Date.now().toString());
+        setAdminUser(user);
+      } catch (e) {
+        console.error('Error writing to localStorage', e);
+      }
+      setIsAuthenticated(true);
+      setLoginPassword('');
+    } else {
+      setLoginError('Invalid password. Default initial password is "helloworld" unless updated.');
+    }
+  };
+
+  // Handle Logout
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('mainahtunes_admin_auth');
+    } catch (e) {
+      console.error('Error clearing auth from localStorage', e);
+    }
+    setIsAuthenticated(false);
+    setLoginPassword('');
+    setLoginError('');
+  };
+
+  // Handle Change Password
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdChangeSuccess('');
+    setPwdChangeError('');
+
+    const activePwd = getStoredPassword();
+
+    if (currentPwdInput !== activePwd) {
+      setPwdChangeError('Current password does not match.');
+      return;
+    }
+
+    if (newPwdInput.length < 6) {
+      setPwdChangeError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPwdInput !== confirmPwdInput) {
+      setPwdChangeError('New password and confirmation do not match.');
+      return;
+    }
+
+    try {
+      localStorage.setItem('mainahtunes_admin_pwd', newPwdInput);
+      setPwdChangeSuccess('Password updated successfully! Next time you log in, use your new password.');
+      setCurrentPwdInput('');
+      setNewPwdInput('');
+      setConfirmPwdInput('');
+    } catch (e) {
+      setPwdChangeError('Failed to save updated password to local storage.');
+    }
+  };
+
+  // Reset to Default "helloworld"
+  const handleResetDefaultPassword = () => {
+    if (window.confirm('Reset admin password back to the default "helloworld"?')) {
+      try {
+        localStorage.setItem('mainahtunes_admin_pwd', 'helloworld');
+        setPwdChangeSuccess('Admin password reset to default "helloworld".');
+        setPwdChangeError('');
+        setCurrentPwdInput('');
+        setNewPwdInput('');
+        setConfirmPwdInput('');
+      } catch (e) {
+        setPwdChangeError('Failed to reset password.');
+      }
+    }
+  };
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -99,6 +237,102 @@ export default function AdminManagementStudio() {
     }
   };
 
+  // Prevent flash during hydration
+  if (!isMounted) {
+    return (
+      <main className="admin-studio-main admin-loading-screen">
+        <div className="admin-loading-spinner">
+          <Sparkles size={28} className="spin-icon text-orange" />
+          <p>Initializing Secure Admin Studio...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // If unauthenticated, show the protected Admin Login Page
+  if (!isAuthenticated) {
+    return (
+      <main className="admin-studio-main admin-login-page">
+        <div className="admin-login-container">
+          <div className="login-top-nav">
+            <Link href="/" className="back-link">
+              ← Return to Main Website
+            </Link>
+          </div>
+
+          <div className="admin-login-card">
+            <div className="login-badge-header">
+              <div className="login-lock-icon">
+                <Lock size={24} />
+              </div>
+              <span className="login-kicker">MAINAHTUNESTEAM · RESTRICTED ACCESS</span>
+              <h2>Admin Management Studio</h2>
+              <p>Enter administrative credentials to manage agency services, portfolio catalog, and site data.</p>
+            </div>
+
+            {loginError && (
+              <div className="security-alert error" role="alert">
+                <AlertCircle size={16} />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="login-form">
+              <label>
+                Username / Email
+                <input
+                  type="text"
+                  required
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  placeholder="e.g. admin"
+                  autoComplete="username"
+                />
+              </label>
+
+              <label>
+                Password
+                <div className="pwd-input-wrap">
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="Enter admin password"
+                    autoComplete="current-password"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    className="pwd-toggle-btn"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </label>
+
+              <div className="login-hint-box">
+                <ShieldCheck size={14} className="text-orange" />
+                <span>Default credentials: <b>admin</b> / <b>helloworld</b></span>
+              </div>
+
+              <button type="submit" className="button button-orange login-submit-btn">
+                Unlock Admin Studio <span>↗</span>
+              </button>
+            </form>
+
+            <div className="login-card-footer">
+              <small>Protected administrative route. Unauthorized access attempts are monitored.</small>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Authenticated Admin Console View
   return (
     <main className="admin-studio-main">
       <section className="page-hero admin-hero">
@@ -109,6 +343,31 @@ export default function AdminManagementStudio() {
         <p>
           Manage, preview, and update all 53 services, portfolio artworks, audio samples, team members, and testimonials without writing code.
         </p>
+
+        {/* Admin Session Control Bar */}
+        <div className="admin-session-bar">
+          <div className="session-status">
+            <span className="live-dot" />
+            <span>Authenticated as: <b>{adminUser}</b></span>
+            <span className="session-tag">PROTECTED SESSION</span>
+          </div>
+          <div className="session-actions">
+            <button
+              type="button"
+              className="session-btn"
+              onClick={() => setActiveTab('security')}
+            >
+              <KeyRound size={13} /> Change Password
+            </button>
+            <button
+              type="button"
+              className="session-btn logout"
+              onClick={handleLogout}
+            >
+              <LogOut size={13} /> Log Out
+            </button>
+          </div>
+        </div>
 
         <div className="admin-quick-stats">
           <span><b>53</b> Services</span>
@@ -156,6 +415,13 @@ export default function AdminManagementStudio() {
             onClick={() => setActiveTab('testimonials')}
           >
             <MessageSquare size={14} /> Testimonials ({testimonials.length})
+          </button>
+          <button
+            type="button"
+            className={activeTab === 'security' ? 'admin-nav-tab active' : 'admin-nav-tab'}
+            onClick={() => setActiveTab('security')}
+          >
+            <KeyRound size={14} /> Security &amp; Credentials
           </button>
           <button
             type="button"
@@ -351,7 +617,141 @@ export default function AdminManagementStudio() {
           </div>
         )}
 
-        {/* Tab 6: New Entry Generator */}
+        {/* Tab 6: Security & Password Management */}
+        {activeTab === 'security' && (
+          <div className="admin-panel">
+            <div className="panel-header">
+              <div>
+                <h2>Security &amp; Administrative Credentials</h2>
+                <p>Change your admin login password or review credential access controls for the studio.</p>
+              </div>
+            </div>
+
+            <div className="security-panel-grid">
+              <div className="security-card">
+                <div className="security-card-header">
+                  <KeyRound size={22} className="text-orange" />
+                  <div>
+                    <h3>Change Admin Password</h3>
+                    <p>Enter your current password and specify a new secure password.</p>
+                  </div>
+                </div>
+
+                {pwdChangeSuccess && (
+                  <div className="security-alert success" role="alert">
+                    <CheckCircle2 size={16} />
+                    <span>{pwdChangeSuccess}</span>
+                  </div>
+                )}
+
+                {pwdChangeError && (
+                  <div className="security-alert error" role="alert">
+                    <AlertCircle size={16} />
+                    <span>{pwdChangeError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword} className="security-form">
+                  <label>
+                    Current Password
+                    <div className="pwd-input-wrap">
+                      <input
+                        type={showCurrentPwd ? 'text' : 'password'}
+                        required
+                        value={currentPwdInput}
+                        onChange={(e) => setCurrentPwdInput(e.target.value)}
+                        placeholder="Enter current password"
+                      />
+                      <button
+                        type="button"
+                        className="pwd-toggle-btn"
+                        onClick={() => setShowCurrentPwd(!showCurrentPwd)}
+                        aria-label={showCurrentPwd ? 'Hide password' : 'Show password'}
+                      >
+                        {showCurrentPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </label>
+
+                  <label>
+                    New Password
+                    <div className="pwd-input-wrap">
+                      <input
+                        type={showNewPwd ? 'text' : 'password'}
+                        required
+                        value={newPwdInput}
+                        onChange={(e) => setNewPwdInput(e.target.value)}
+                        placeholder="Enter new password (min. 6 characters)"
+                      />
+                      <button
+                        type="button"
+                        className="pwd-toggle-btn"
+                        onClick={() => setShowNewPwd(!showNewPwd)}
+                        aria-label={showNewPwd ? 'Hide password' : 'Show password'}
+                      >
+                        {showNewPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </label>
+
+                  <label>
+                    Confirm New Password
+                    <div className="pwd-input-wrap">
+                      <input
+                        type={showConfirmPwd ? 'text' : 'password'}
+                        required
+                        value={confirmPwdInput}
+                        onChange={(e) => setConfirmPwdInput(e.target.value)}
+                        placeholder="Confirm new password"
+                      />
+                      <button
+                        type="button"
+                        className="pwd-toggle-btn"
+                        onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                        aria-label={showConfirmPwd ? 'Hide password' : 'Show password'}
+                      >
+                        {showConfirmPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </label>
+
+                  <div className="security-form-actions">
+                    <button type="submit" className="button button-orange">
+                      Update Password ↗
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-outline"
+                      onClick={handleResetDefaultPassword}
+                    >
+                      Reset to Default (helloworld)
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="security-info-card">
+                <h3>Access Control &amp; Best Practices</h3>
+                <ul className="security-tips-list">
+                  <li>
+                    <b>Default System Password:</b> Initial factory password is set to <code>helloworld</code>.
+                  </li>
+                  <li>
+                    <b>Instant Local Persistence:</b> Updating your password persists locally in browser storage immediately, taking effect across all subsequent logins.
+                  </li>
+                  <li>
+                    <b>Session Isolation:</b> Your session remains authenticated until you click <b>Log Out</b> or clear your browser data.
+                  </li>
+                  <li>
+                    <b>Safety Reset:</b> You can reset your credentials back to <code>helloworld</code> at any time using the &ldquo;Reset to Default&rdquo; button or by clearing storage.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 7: New Entry Generator */}
         {activeTab === 'add-item' && (
           <div className="admin-panel">
             <div className="panel-header">

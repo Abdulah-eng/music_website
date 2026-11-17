@@ -8,12 +8,20 @@ Welcome to the **MainahtunesTeam Agency Content Management Guide**. This guide e
 Your platform includes a built-in **Agency Content Management Studio** accessible directly at:
 👉 **`https://yourdomain.com/admin`** (or `http://localhost:3000/admin` locally)
 
+### Security & Login Credentials:
+The admin page is protected with authentication:
+* **Default Username:** `admin`
+* **Default Password:** `helloworld`
+* **Change Password Functionality:** Once logged in, go to the **Security & Credentials** tab (or click **Change Password** in the top hero bar) to set your own custom password.
+* **Persistent Sessions:** Your updated password persists across logins. If you ever forget it, you can reset it to `helloworld` using the reset button or by clearing site data.
+
 The studio gives you:
 * **Services Directory**: Overview of all 53 live services, category mappings, and direct page links.
 * **Cover Artworks**: Inspection of the 19 preserved cover designs, concepts, and deliverable specs.
 * **Audio Engineering Console**: Inspection of the 6 studio mixing and mastering tracks, LUFS calibrations, and A/B notes.
 * **Team & Leadership**: Operational directory featuring **Afolabi Ayodeji (Financial Manager)**.
 * **Testimonials Manager**: Real-time review of client testimonials and verified results.
+* **Security & Credentials Manager**: Immediate in-app password changes, session status, and credentials control.
 * **Interactive Code Generator**: Form allowing non-developers to generate properly formatted entries for new artworks, team members, or testimonials with 1-click clipboard copying.
 
 ---
