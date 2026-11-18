@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -31,41 +31,138 @@ export default function ReviewMyWorksPage() {
   const [activeTab, setActiveTab] = useState<'ALL' | 'ARTWORK' | 'AUDIO' | 'VIDEO' | 'WEBSITES' | 'CAMPAIGNS'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [artworks, setArtworks] = useState(artworkCatalog);
+  const [audio, setAudio] = useState(audioCatalog);
+  const [videos, setVideos] = useState(videoCatalog);
+  const [websites] = useState(webProjectsCatalog);
+  const [campaigns] = useState(promotionCaseStudies);
+
+  useEffect(() => {
+    // 1. Fetch live portfolio from external cloud storage / permanent registry
+    fetch('/api/portfolio')
+      .then((res) => {
+        if (!res.ok) throw new Error('Portfolio fetch error');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.artworks && Array.isArray(data.artworks)) setArtworks(data.artworks);
+        if (data.audio && Array.isArray(data.audio)) setAudio(data.audio);
+        if (data.videos && Array.isArray(data.videos)) setVideos(data.videos);
+      })
+      .catch((err) => {
+        console.warn('Using baseline portfolio:', err);
+      });
+
+    // 2. Client-side browser sync for instant preview
+    try {
+      const local = localStorage.getItem('mainahtunes_custom_projects');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setArtworks((prev) => {
+            const customArts = parsed
+              .filter((p: any) => p.category === 'artwork')
+              .map((p: any) => ({
+                id: p.id,
+                title: p.title,
+                artist: p.artist,
+                style: p.style || 'Custom Commission',
+                image: p.fileUrl,
+                concept: p.concept || p.description || 'Custom client commission',
+                deliverables: p.deliverables || ['Digital Master', 'Commercial License'],
+              }));
+            const existingIds = new Set(prev.map((a) => a.id));
+            const newArts = customArts.filter((a: any) => !existingIds.has(a.id));
+            return [...newArts, ...prev];
+          });
+
+          setAudio((prev) => {
+            const customAudios = parsed
+              .filter((p: any) => p.category === 'audio')
+              .map((p: any) => ({
+                id: p.id,
+                title: p.title,
+                artist: p.artist,
+                type: 'mastering' as const,
+                src: p.fileUrl,
+                format: p.format || 'Commercial Streaming Master',
+                lufs: p.lufs || '-9.0 LUFS',
+                description: p.description || 'Custom audio mastering commission',
+                engineerNotes: 'Mastered with precision dynamics and commercial loudness.',
+                beforeNotes: 'Raw mix before mastering enhancement.',
+                afterNotes: 'Mastered with commercial loudness and punch.',
+              }));
+            const existingIds = new Set(prev.map((a) => a.id));
+            const newAudios = customAudios.filter((a: any) => !existingIds.has(a.id));
+            return [...newAudios, ...prev];
+          });
+
+          setVideos((prev) => {
+            const customVids = parsed
+              .filter((p: any) => p.category === 'video')
+              .map((p: any) => ({
+                id: p.id,
+                title: p.title,
+                type: 'AI-Assisted Music Video',
+                videoSrc: p.fileUrl,
+                description: p.description || 'Custom music video reel commission',
+                duration: p.duration || '02:30',
+                aspectRatio: '16:9',
+                relatedServiceSlug: 'ai-assisted-music-videos',
+              }));
+            const existingIds = new Set(prev.map((v) => v.id));
+            const newVids = customVids.filter((v: any) => !existingIds.has(v.id));
+            return [...newVids, ...prev];
+          });
+        }
+      }
+    } catch {}
+  }, []);
+
   // Filter artworks by search
   const filteredArtworks = useMemo(() => {
-    if (!searchQuery.trim()) return artworkCatalog;
+    if (!searchQuery.trim()) return artworks;
     const q = searchQuery.toLowerCase();
-    return artworkCatalog.filter(
+    return artworks.filter(
       (a) => a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q) || a.style.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, artworks]);
 
   // Filter audio by search
   const filteredAudio = useMemo(() => {
-    if (!searchQuery.trim()) return audioCatalog;
+    if (!searchQuery.trim()) return audio;
     const q = searchQuery.toLowerCase();
-    return audioCatalog.filter(
+    return audio.filter(
       (a) => a.title.toLowerCase().includes(q) || (a.artist && a.artist.toLowerCase().includes(q)) || a.type.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, audio]);
+
+  // Filter videos by search
+  const filteredVideos = useMemo(() => {
+    if (!searchQuery.trim()) return videos;
+    const q = searchQuery.toLowerCase();
+    return videos.filter(
+      (v) => v.title.toLowerCase().includes(q) || v.description.toLowerCase().includes(q) || v.type.toLowerCase().includes(q)
+    );
+  }, [searchQuery, videos]);
 
   // Filter web by search
   const filteredWeb = useMemo(() => {
-    if (!searchQuery.trim()) return webProjectsCatalog;
+    if (!searchQuery.trim()) return websites;
     const q = searchQuery.toLowerCase();
-    return webProjectsCatalog.filter(
+    return websites.filter(
       (w) => w.title.toLowerCase().includes(q) || w.category.toLowerCase().includes(q) || w.clientType.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, websites]);
 
   // Filter campaigns by search
   const filteredCampaigns = useMemo(() => {
-    if (!searchQuery.trim()) return promotionCaseStudies;
+    if (!searchQuery.trim()) return campaigns;
     const q = searchQuery.toLowerCase();
-    return promotionCaseStudies.filter(
+    return campaigns.filter(
       (c) => c.title.toLowerCase().includes(q) || c.artistName.toLowerCase().includes(q) || c.genre.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, campaigns]);
 
   return (
     <main className="review-page">
@@ -84,11 +181,11 @@ export default function ReviewMyWorksPage() {
         </p>
 
         <div className="review-stats">
-          <span><b>19</b> COVER ARTWORKS</span>
-          <span><b>06</b> AUDIO SAMPLES</span>
-          <span><b>02</b> AI MUSIC VIDEOS</span>
-          <span><b>08</b> WEB PLATFORMS</span>
-          <span><b>04</b> CAMPAIGN CASE STUDIES</span>
+          <span><b>{artworks.length}</b> COVER ARTWORKS</span>
+          <span><b>{audio.length}</b> MASTER AUDIO TRACKS</span>
+          <span><b>{videos.length}</b> AI MUSIC VIDEOS</span>
+          <span><b>{websites.length}</b> WEB PLATFORMS</span>
+          <span><b>{campaigns.length}</b> CAMPAIGN CASE STUDIES</span>
         </div>
       </section>
 
@@ -123,42 +220,42 @@ export default function ReviewMyWorksPage() {
               className={activeTab === 'ALL' ? 'cat-pill active' : 'cat-pill'}
               onClick={() => setActiveTab('ALL')}
             >
-              All Works (39)
+              All Works ({artworks.length + audio.length + videos.length + websites.length + campaigns.length})
             </button>
             <button
               type="button"
               className={activeTab === 'ARTWORK' ? 'cat-pill active' : 'cat-pill'}
               onClick={() => setActiveTab('ARTWORK')}
             >
-              <Palette size={13} /> Cover Artwork (19)
+              <Palette size={13} /> Cover Artwork ({artworks.length})
             </button>
             <button
               type="button"
               className={activeTab === 'AUDIO' ? 'cat-pill active' : 'cat-pill'}
               onClick={() => setActiveTab('AUDIO')}
             >
-              <Volume2 size={13} /> Audio Mastering &amp; Mixing (6)
+              <Volume2 size={13} /> Audio Mastering &amp; Mixing ({audio.length})
             </button>
             <button
               type="button"
               className={activeTab === 'VIDEO' ? 'cat-pill active' : 'cat-pill'}
               onClick={() => setActiveTab('VIDEO')}
             >
-              <Film size={13} /> AI Music Videos (2)
+              <Film size={13} /> AI Music Videos ({videos.length})
             </button>
             <button
               type="button"
               className={activeTab === 'WEBSITES' ? 'cat-pill active' : 'cat-pill'}
               onClick={() => setActiveTab('WEBSITES')}
             >
-              <Laptop size={13} /> Web Development (8)
+              <Laptop size={13} /> Web Development ({websites.length})
             </button>
             <button
               type="button"
               className={activeTab === 'CAMPAIGNS' ? 'cat-pill active' : 'cat-pill'}
               onClick={() => setActiveTab('CAMPAIGNS')}
             >
-              <TrendingUp size={13} /> Promotion Case Studies (4)
+              <TrendingUp size={13} /> Promotion Case Studies ({campaigns.length})
             </button>
           </div>
         </div>
@@ -176,7 +273,7 @@ export default function ReviewMyWorksPage() {
                 Album &amp; Single <em>Cover Artwork</em>
               </h2>
               <p>
-                A curated gallery of 19 original cover designs spanning R&amp;B, Blues, Hip-Hop, Indie Romance, and 3D Character Art. Click any artwork to preview in full resolution.
+                A curated gallery of 20 original cover designs spanning R&amp;B, Blues, Hip-Hop, Indie Romance, and 3D Character Art. Click any artwork to preview in full resolution.
               </p>
             </div>
             <span className="audio-count">{filteredArtworks.length} ARTWORKS</span>
@@ -223,11 +320,11 @@ export default function ReviewMyWorksPage() {
                 Watch the two original AI music video samples in their uncompressed, original form. Directed with surreal character design, rhythmic pacing, and cinematic color grades.
               </p>
             </div>
-            <span className="audio-count">{videoCatalog.length} VIDEO SAMPLES</span>
+            <span className="audio-count">{filteredVideos.length} VIDEO SAMPLES</span>
           </div>
 
           <div className="video-catalog-grid">
-            {videoCatalog.map((video) => (
+            {filteredVideos.map((video) => (
               <article className="ai-video-card" key={video.id}>
                 <div className="ai-video-frame">
                   <video

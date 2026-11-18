@@ -10,6 +10,14 @@ interface Props {
   artworks: ArtworkProject[];
 }
 
+function getArtworkSrc(img: string): string {
+  if (!img) return '/brand/placeholder.png';
+  if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:') || img.startsWith('/')) {
+    return img;
+  }
+  return `/artwork/${img}`;
+}
+
 export default function ArtworkLightboxModal({ artworks }: Props) {
   const [selectedArtwork, setSelectedArtwork] = useState<ArtworkProject | null>(null);
 
@@ -54,12 +62,13 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
           >
             <div className="artwork-image-container">
               <Image
-                src={`/artwork/${item.image}`}
+                src={getArtworkSrc(item.image)}
                 alt={`${item.title} by ${item.artist}`}
                 width={500}
                 height={500}
                 className="artwork-thumb-img"
                 loading="lazy"
+                unoptimized
               />
               <div className="artwork-overlay-hover">
                 <span className="artwork-view-tag">
@@ -104,12 +113,13 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
               <div className="lightbox-art-display">
                 <div className="lightbox-image-wrap">
                   <Image
-                    src={`/artwork/${selectedArtwork.image}`}
+                    src={getArtworkSrc(selectedArtwork.image)}
                     alt={`${selectedArtwork.title} by ${selectedArtwork.artist}`}
                     width={900}
                     height={900}
                     className="lightbox-master-img"
                     priority
+                    unoptimized
                   />
                 </div>
               </div>
@@ -149,7 +159,7 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
                     Commission Similar Artwork <span>↗</span>
                   </Link>
                   <a
-                    href={`/artwork/${selectedArtwork.image}`}
+                    href={getArtworkSrc(selectedArtwork.image)}
                     target="_blank"
                     rel="noreferrer"
                     className="button button-outline"

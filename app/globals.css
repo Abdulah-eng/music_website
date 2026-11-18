@@ -1713,6 +1713,45 @@
   margin: 0 0 16px;
 }
 
+.audio-track-selector-bar {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.audio-track-selector-bar small {
+  display: block;
+  font-size: 9px;
+  letter-spacing: .14em;
+  font-weight: 700;
+  color: var(--orange);
+  margin-bottom: 10px;
+}
+.audio-track-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.track-pill {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.track-pill:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+.track-pill.active {
+  background: var(--orange);
+  color: #fff;
+  border-color: var(--orange);
+}
+
 .audio-specs {
   display: flex;
   gap: 20px;
@@ -5174,4 +5213,40 @@
   font-size: 11px;
   color: var(--ink);
   margin-top: 10px;
+}
+
+/* Interactive Home Hero Audio Stage */
+.interactive-play-btn {
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+.interactive-play-btn:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+  background: #ffffff !important;
+  color: var(--orange) !important;
+  box-shadow: 0 0 0 16px rgba(244, 119, 19, 0.4) !important;
+}
+.hero-stage-playing .vinyl {
+  animation: recordSpin 5s linear infinite !important;
+}
+.hero-stage-playing .stage-glow {
+  opacity: 0.55 !important;
+  filter: blur(110px) !important;
+}
+.pulse-red {
+  background: #ff3b30 !important;
+  box-shadow: 0 0 0 5px rgba(255, 59, 48, 0.35) !important;
+}
+.interactive-track-bar {
+  transition: all 0.2s ease;
+}
+.interactive-track-bar:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(244, 119, 19, 0.6) !important;
+}
+.track-time-counter {
+  font-family: monospace;
+  font-size: 9px !important;
+  color: #f6a24e !important;
+  white-space: nowrap;
 }

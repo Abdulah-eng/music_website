@@ -40,10 +40,10 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
   // Sync audio source when track changes
   useEffect(() => {
     if (audioRef.current && activeTrack) {
-      audioRef.current.src = activeTrack.src;
-      audioRef.current.load();
-      if (isPlaying) {
-        audioRef.current.play().catch(() => setIsPlaying(false));
+      const currentSrc = audioRef.current.src || '';
+      if (!currentSrc.endsWith(activeTrack.src)) {
+        audioRef.current.src = activeTrack.src;
+        setCurrentTime(0);
       }
     }
   }, [activeTrack]);
@@ -57,18 +57,38 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
     }
   }, [isAfter]);
 
+  const playTrack = (track: AudioTrackProject, idx: number) => {
+    setActiveTrackIndex(idx);
+    setCurrentTime(0);
+    if (!audioRef.current) return;
+    audioRef.current.src = track.src;
+    audioRef.current.currentTime = 0;
+    audioRef.current
+      .play()
+      .then(() => {
+        setIsPlaying(true);
+      })
+      .catch((e) => {
+        console.warn('Playback error:', e);
+        setIsPlaying(false);
+      });
+  };
+
   const togglePlay = () => {
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch((e) => {
-        console.error('Audio playback error', e);
-        setIsPlaying(false);
-      });
+      audioRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((e) => {
+          console.error('Audio playback error', e);
+          setIsPlaying(false);
+        });
     }
   };
 
@@ -131,7 +151,7 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
             setActiveTrackIndex(0);
           }}
         >
-          All 6 Studio Samples
+          All 8 Master Tracks
         </button>
         <button
           type="button"
@@ -141,7 +161,7 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
             setActiveTrackIndex(0);
           }}
         >
-          Track Mastering (3)
+          Track Mastering (6)
         </button>
         <button
           type="button"
@@ -151,7 +171,7 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
             setActiveTrackIndex(0);
           }}
         >
-          Music Mixing (3)
+          Music Mixing (2)
         </button>
       </div>
 
@@ -171,8 +191,7 @@ export default function AudioPlayerCatalog({ tracks, initialType = 'all' }: Prop
                   key={track.id}
                   className={isSelected ? 'track-item active' : 'track-item'}
                   onClick={() => {
-                    setActiveTrackIndex(idx);
-                    setIsPlaying(true);
+                    playTrack(track, idx);
                   }}
                   tabIndex={0}
                   role="button"

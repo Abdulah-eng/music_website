@@ -28,11 +28,20 @@ import {
   FileAudio,
   FileImage,
   FileVideo,
+  Trash2,
 } from 'lucide-react';
 import { services } from '@/data/services';
 import { artworkCatalog, audioCatalog, videoCatalog, webProjectsCatalog } from '@/data/portfolio';
 import { teamMembers } from '@/data/team';
 import { testimonials } from '@/data/testimonials';
+
+function getArtworkSrc(img: string): string {
+  if (!img) return '/brand/placeholder.png';
+  if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:') || img.startsWith('/')) {
+    return img;
+  }
+  return `/artwork/${img}`;
+}
 
 export default function AdminManagementStudio() {
   // Navigation tab state
@@ -79,6 +88,35 @@ export default function AdminManagementStudio() {
   const [genTestimonial, setGenTestimonial] = useState({ clientName: '', role: '', location: '', serviceEngaged: '', quote: '', verifiedOutcome: '' });
   const [generatedJson, setGeneratedJson] = useState('');
 
+  // Dynamic custom projects state
+  const [customProjects, setCustomProjects] = useState<any[]>([]);
+  const [allArtworks, setAllArtworks] = useState(artworkCatalog);
+  const [allAudio, setAllAudio] = useState(audioCatalog);
+  const [allVideos, setAllVideos] = useState(videoCatalog);
+
+  const refreshProjects = () => {
+    fetch('/api/portfolio')
+      .then((res) => {
+        if (!res.ok) throw new Error('Portfolio load error');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.customProjects && Array.isArray(data.customProjects)) {
+          setCustomProjects(data.customProjects);
+        }
+        if (data.artworks && Array.isArray(data.artworks)) {
+          setAllArtworks(data.artworks);
+        }
+        if (data.audio && Array.isArray(data.audio)) {
+          setAllAudio(data.audio);
+        }
+        if (data.videos && Array.isArray(data.videos)) {
+          setAllVideos(data.videos);
+        }
+      })
+      .catch((err) => console.warn('Portfolio load err:', err));
+  };
+
   // Helper: Retrieve active stored password or default 'helloworld'
   const getStoredPassword = (): string => {
     if (typeof window === 'undefined') return 'helloworld';
@@ -92,6 +130,7 @@ export default function AdminManagementStudio() {
   // Mount effect to check stored login session
   useEffect(() => {
     setIsMounted(true);
+    refreshProjects();
     try {
       const isAuth = localStorage.getItem('mainahtunes_admin_auth');
       const savedUser = localStorage.getItem('mainahtunes_admin_user');
@@ -221,13 +260,50 @@ export default function AdminManagementStudio() {
       }
 
       setUploadSuccessMsg(data.message || 'File uploaded successfully!');
-      setUploadedUrl(data.publicPath);
+      setUploadedUrl(data.publicUrl || data.publicPath || '');
       setUploadFile(null);
+      setUploadTitle('');
+      setUploadArtist('');
+      setUploadDesc('');
       if (fileInputRef.current) fileInputRef.current.value = '';
+
+      if (data.project) {
+        setCustomProjects((prev) => [data.project, ...prev.filter((p) => p.id !== data.project.id)]);
+        try {
+          const stored = localStorage.getItem('mainahtunes_custom_projects');
+          const list = stored ? JSON.parse(stored) : [];
+          const updated = [data.project, ...list.filter((p: any) => p.id !== data.project.id)];
+          localStorage.setItem('mainahtunes_custom_projects', JSON.stringify(updated));
+        } catch {}
+      }
+      refreshProjects();
     } catch (err: any) {
       setUploadErrorMsg(err.message || 'An error occurred during upload.');
     } finally {
       setUploadLoading(false);
+    }
+  };
+
+  const handleDeleteCustomProject = async (id: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete and unpublish "${title}"?`)) return;
+    try {
+      const res = await fetch(`/api/portfolio?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCustomProjects((prev) => prev.filter((p) => p.id !== id));
+        try {
+          const stored = localStorage.getItem('mainahtunes_custom_projects');
+          if (stored) {
+            const list = JSON.parse(stored);
+            localStorage.setItem('mainahtunes_custom_projects', JSON.stringify(list.filter((p: any) => p.id !== id)));
+          }
+        } catch {}
+        refreshProjects();
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to delete project');
+      }
+    } catch (e: any) {
+      alert(`Failed to delete: ${e.message}`);
     }
   };
 
@@ -433,12 +509,12 @@ export default function AdminManagementStudio() {
 
         <div className="admin-quick-stats">
           <span><b>53</b> Services</span>
-          <span><b>19</b> Artworks</span>
-          <span><b>06</b> Audio Samples</span>
-          <span><b>02</b> AI Videos</span>
+          <span><b>{allArtworks.length}</b> Artworks</span>
+          <span><b>{allAudio.length}</b> Audio Samples</span>
+          <span><b>{allVideos.length}</b> AI Videos</span>
           <span><b>08</b> Web Projects</span>
           <span><b>04</b> Testimonials</span>
-          <span><b>01</b> Executive Team Lead</span>
+          <span><b>{customProjects.length}</b> Custom Uploads</span>
         </div>
       </section>
 
@@ -456,21 +532,21 @@ export default function AdminManagementStudio() {
             className={activeTab === 'artworks' ? 'admin-nav-tab active' : 'admin-nav-tab'}
             onClick={() => setActiveTab('artworks')}
           >
-            <Palette size={14} /> Cover Artworks ({artworkCatalog.length})
+            <Palette size={14} /> Cover Artworks ({allArtworks.length})
           </button>
           <button
             type="button"
             className={activeTab === 'audio' ? 'admin-nav-tab active' : 'admin-nav-tab'}
             onClick={() => setActiveTab('audio')}
           >
-            <Volume2 size={14} /> Audio Engineering ({audioCatalog.length})
+            <Volume2 size={14} /> Audio Engineering ({allAudio.length})
           </button>
           <button
             type="button"
             className={activeTab === 'videos' ? 'admin-nav-tab active' : 'admin-nav-tab'}
             onClick={() => setActiveTab('videos')}
           >
-            <Film size={14} /> AI Music Videos ({videoCatalog.length})
+            <Film size={14} /> AI Music Videos ({allVideos.length})
           </button>
           <button
             type="button"
@@ -491,7 +567,7 @@ export default function AdminManagementStudio() {
             className={activeTab === 'upload-sample' ? 'admin-nav-tab active' : 'admin-nav-tab'}
             onClick={() => setActiveTab('upload-sample')}
           >
-            <UploadCloud size={14} /> Upload Samples
+            <UploadCloud size={14} /> Upload Samples {customProjects.length > 0 && `(${customProjects.length})`}
           </button>
           <button
             type="button"
@@ -560,7 +636,7 @@ export default function AdminManagementStudio() {
           <div className="admin-panel">
             <div className="panel-header">
               <div>
-                <h2>19 Preserved Cover Artworks</h2>
+                <h2>{allArtworks.length} Cover Artworks</h2>
                 <p>Original creative artwork catalog rendered with high-resolution visual masters.</p>
               </div>
               <Link href="/visuals#cover-artwork" target="_blank" className="button button-outline">
@@ -569,15 +645,16 @@ export default function AdminManagementStudio() {
             </div>
 
             <div className="admin-cards-grid">
-              {artworkCatalog.map((art, idx) => (
+              {allArtworks.map((art, idx) => (
                 <div className="admin-art-card" key={art.id}>
                   <div className="admin-art-thumb-wrap">
                     <Image
-                      src={`/artwork/${art.image}`}
+                      src={getArtworkSrc(art.image)}
                       alt={art.title}
                       width={300}
                       height={300}
                       className="admin-art-img"
+                      unoptimized
                     />
                   </div>
                   <span className="art-idx">0{idx + 1}</span>
@@ -589,8 +666,8 @@ export default function AdminManagementStudio() {
                     <p>{art.concept}</p>
                   </div>
                   <div className="art-file-info">
-                    <small>FILE PATH:</small>
-                    <code>/public/artwork/{art.image}</code>
+                    <small>SOURCE / URL:</small>
+                    <code>{art.image.length > 45 ? art.image.substring(0, 45) + '...' : art.image}</code>
                   </div>
                 </div>
               ))}
@@ -603,7 +680,7 @@ export default function AdminManagementStudio() {
           <div className="admin-panel">
             <div className="panel-header">
               <div>
-                <h2>6 Studio Audio Samples (Mastering &amp; Mixing)</h2>
+                <h2>{allAudio.length} Studio Audio Samples (Mastering &amp; Mixing)</h2>
                 <p>High-resolution playable audio masters with LUFS calibrations and A/B before/after comparison notes.</p>
               </div>
               <Link href="/visuals#mastering" target="_blank" className="button button-outline">
@@ -612,7 +689,7 @@ export default function AdminManagementStudio() {
             </div>
 
             <div className="admin-cards-grid">
-              {audioCatalog.map((t) => (
+              {allAudio.map((t) => (
                 <div className="admin-audio-card" key={t.id}>
                   <span className="audio-type-badge">{t.type.toUpperCase()}</span>
                   <h3>{t.title}</h3>
@@ -646,7 +723,7 @@ export default function AdminManagementStudio() {
           <div className="admin-panel">
             <div className="panel-header">
               <div>
-                <h2>Original AI Music Video Productions ({videoCatalog.length})</h2>
+                <h2>Original AI Music Video Productions ({allVideos.length})</h2>
                 <p>Playable video reels with high-definition motion cinematography.</p>
               </div>
               <Link href="/visuals#ai-music-video" target="_blank" className="button button-outline">
@@ -655,15 +732,15 @@ export default function AdminManagementStudio() {
             </div>
 
             <div className="admin-cards-grid">
-              {videoCatalog.map((v) => (
+              {allVideos.map((v) => (
                 <div className="admin-audio-card" key={v.id}>
                   <video controls src={v.videoSrc} className="service-sample-video" preload="metadata" />
                   <span className="style-tag" style={{ marginTop: '8px' }}>{v.type}</span>
                   <h3>{v.title}</h3>
                   <p>{v.description}</p>
                   <div className="art-file-info">
-                    <small>FILE PATH:</small>
-                    <code>{v.videoSrc}</code>
+                    <small>FILE PATH / URL:</small>
+                    <code>{v.videoSrc.length > 45 ? v.videoSrc.substring(0, 45) + '...' : v.videoSrc}</code>
                   </div>
                 </div>
               ))}
@@ -884,22 +961,94 @@ export default function AdminManagementStudio() {
               </div>
 
               <div className="security-info-card">
-                <h3>How File Uploads Work</h3>
+                <h3>Permanent Cloud Storage Architecture</h3>
                 <ul className="security-tips-list">
                   <li>
-                    <b>Automatic Destination Routing:</b> Cover artworks automatically go into <code>/public/artwork/</code>, audio tracks into <code>/public/audio/</code>, and video reels into <code>/public/videos/</code>.
+                    <b>Vercel Serverless Ready:</b> Uploads are streamed to permanent cloud storage (Vercel Blob / Cloudinary / External CDN) avoiding the read-only file system restriction (<code>EROFS</code>) on serverless platforms.
                   </li>
                   <li>
-                    <b>Direct Live URL:</b> Once uploaded, your asset is immediately accessible at <code>https://yourdomain.com/[category]/[filename]</code>.
+                    <b>All 3 Asset Types Supported:</b> Upload 3000x3000px cover artwork images, 24-bit WAV / 320k MP3 audio masters, and 1080p / 4K MP4 video reels.
                   </li>
                   <li>
-                    <b>Zero Build Re-compiles:</b> Files uploaded to public directories are served instantly by Next.js without taking down the site.
+                    <b>Instant Live Publishing:</b> Once uploaded, your project automatically appears on the <code>/samples</code> and <code>/visuals</code> pages for all visitors.
                   </li>
                   <li>
-                    <b>Adding to Catalog:</b> Use the <b>Entry Code Generator</b> tab to generate the matching catalog snippet if you want the sample permanently indexed in <code>data/portfolio.ts</code>.
+                    <b>Zero Rebuild Required:</b> Projects are recorded in the cloud registry, remaining accessible across all redeployments.
                   </li>
                 </ul>
               </div>
+            </div>
+
+            {/* Live Published Custom Samples Section */}
+            <div className="custom-samples-manager" style={{ marginTop: '36px' }}>
+              <div className="panel-header">
+                <div>
+                  <h3>Live Published Custom Samples ({customProjects.length})</h3>
+                  <p>Projects uploaded through this studio are stored in permanent cloud storage and published directly to your live portfolio.</p>
+                </div>
+              </div>
+
+              {customProjects.length === 0 ? (
+                <div className="admin-empty-state" style={{ padding: '30px', textAlign: 'center', border: '1px dashed rgba(255, 255, 255, 0.15)', borderRadius: '8px' }}>
+                  <UploadCloud size={36} className="text-orange" style={{ margin: '0 auto 10px', display: 'block' }} />
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>No custom projects uploaded yet. Use the form above to upload your first artwork, master track, or video!</p>
+                </div>
+              ) : (
+                <div className="admin-cards-grid">
+                  {customProjects.map((p) => (
+                    <div className="admin-art-card" key={p.id} style={{ position: 'relative' }}>
+                      {p.category === 'artwork' ? (
+                        <div className="admin-art-thumb-wrap">
+                          <Image
+                            src={getArtworkSrc(p.fileUrl)}
+                            alt={p.title}
+                            width={300}
+                            height={300}
+                            className="admin-art-img"
+                            unoptimized
+                          />
+                        </div>
+                      ) : p.category === 'audio' ? (
+                        <div style={{ padding: '16px 0 8px' }}>
+                          <audio controls src={p.fileUrl} style={{ width: '100%' }} preload="metadata" />
+                        </div>
+                      ) : (
+                        <div style={{ padding: '8px 0' }}>
+                          <video controls src={p.fileUrl} style={{ width: '100%', maxHeight: '180px', borderRadius: '4px' }} preload="metadata" />
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                        <span className="style-tag" style={{ textTransform: 'uppercase' }}>{p.category}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCustomProject(p.id, p.title)}
+                          className="button button-outline"
+                          style={{ padding: '4px 8px', fontSize: '11px', color: '#ff5c5c', borderColor: 'rgba(255, 92, 92, 0.3)' }}
+                          title="Delete / Unpublish"
+                        >
+                          <Trash2 size={12} style={{ display: 'inline', marginRight: '4px' }} /> Unpublish
+                        </button>
+                      </div>
+
+                      <h3 style={{ marginTop: '8px' }}>{p.title}</h3>
+                      <p>Artist: <strong>{p.artist}</strong></p>
+                      {p.description && (
+                        <div className="art-concept-preview">
+                          <small>NOTES / CONCEPT:</small>
+                          <p>{p.description}</p>
+                        </div>
+                      )}
+                      <div className="art-file-info" style={{ marginTop: '8px' }}>
+                        <small>CLOUD URL:</small>
+                        <a href={p.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize: '11px', wordBreak: 'break-all', color: 'var(--accent-orange)' }}>
+                          {p.fileUrl.length > 50 ? p.fileUrl.substring(0, 50) + '...' : p.fileUrl} ↗
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

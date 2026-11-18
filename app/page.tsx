@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import HomeHeroStage from '@/components/HomeHeroStage';
 import {
   Sparkles,
   ArrowUpRight,
@@ -117,58 +118,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Animated Hero Stage */}
-          <div className="hero-stage" aria-label="Animated music and visual production showcase">
-            <div className="stage-glow" />
-            <div className="stage-grid" />
-            <div className="stage-orbit orbit-one" />
-            <div className="stage-orbit orbit-two" />
-            <div className="stage-label stage-label-top">
-              <span className="live-dot" /> MAINAH CREATIVE LAB <b>NOW CREATING</b>
-            </div>
-
-            <div className="vinyl-wrap">
-              <div className="vinyl">
-                <div className="vinyl-label">
-                  <span>MT</span>
-                  <i>GLOBAL SOUND 2026</i>
-                </div>
-              </div>
-            </div>
-
-            <div className="stage-play">
-              <span>▶</span>
-            </div>
-
-            <div className="equalizer" aria-hidden="true">
-              {Array.from({ length: 30 }, (_, i) => (
-                <i key={i} style={{ '--i': i } as React.CSSProperties} />
-              ))}
-            </div>
-
-            <div className="stage-track">
-              <div>
-                <small>FEATURED SOUND</small>
-                <b>THE NEXT CHAPTER</b>
-              </div>
-              <div className="track-wave">
-                {Array.from({ length: 30 }, (_, i) => (
-                  <i key={i} style={{ '--i': i } as React.CSSProperties} />
-                ))}
-              </div>
-              <span>03:26</span>
-            </div>
-
-            <div className="floating-tag tag-top">
-              ✳ VISUAL DIRECTION <b>53 SERVICES</b>
-            </div>
-            <div className="floating-tag tag-side">
-              SOUND <span>×</span> STORY <span>×</span> VISION
-            </div>
-            <div className="stage-corner">
-              MT<span>CREATIVE STUDIO</span>
-            </div>
-          </div>
+          {/* Interactive Hero Audio & Stage */}
+          <HomeHeroStage />
         </div>
 
         <div className="hero-bottom hero-bottom-new">

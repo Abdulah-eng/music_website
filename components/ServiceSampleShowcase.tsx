@@ -26,12 +26,24 @@ interface Props {
   service: Service;
 }
 
+const clientMasterTracks = [
+  { slug: 'braincrackerz', title: 'Braincrackerz', artist: 'Az Alwayz', src: '/audio/az-alwayz-braincrackerz.mp3' },
+  { slug: 'bibilon', title: 'BIBILON', artist: 'Mainahtunes Session', src: '/audio/bibilon.mp3' },
+  { slug: 'blinding-love', title: 'Blinding Love', artist: 'Mainahtunes Session', src: '/audio/blinding-love.mp3' },
+  { slug: 'carousel', title: 'Carousel of Emotion', artist: 'Mainahtunes Session', src: '/audio/carousel-of-emotion.mp3' },
+  { slug: 'lets-go', title: "Let's Go Move Around", artist: 'Michelle Bond', src: '/audio/michelle-bond-lets-go-move-around.mp3' },
+  { slug: 'oath-of-light', title: 'Oath of Light', artist: 'Mainahtunes Orchestral', src: '/audio/oath-of-light.mp3' },
+  { slug: 'sex-trap', title: 'SEX TRAP', artist: 'Mainahtunes Session', src: '/audio/sex-trap.mp3' },
+  { slug: 'moon-sun', title: 'The Moon, The Earth and The Sun', artist: 'Mainahtunes Session', src: '/audio/the-moon-the-earth-and-the-sun.mp3' },
+];
+
 export default function ServiceSampleShowcase({ service }: Props) {
   // Audio A/B state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAfter, setIsAfter] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [selectedMasterIndex, setSelectedMasterIndex] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Web demo state (e.g., merch cart demo)
@@ -45,6 +57,19 @@ export default function ServiceSampleShowcase({ service }: Props) {
     if (slug.includes('podcast')) return '/audio/carousel-of-emotion.mp3';
     if (slug.includes('restoration')) return '/audio/bibilon.mp3';
     return '/audio/az-alwayz-braincrackerz.mp3';
+  };
+
+  const switchAudioTrack = (idx: number) => {
+    setSelectedMasterIndex(idx);
+    setCurrentTime(0);
+    if (audioRef.current) {
+      audioRef.current.src = clientMasterTracks[idx].src;
+      audioRef.current.currentTime = 0;
+      audioRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
+    }
   };
 
   const getArtworkImage = (slug: string) => {
@@ -61,8 +86,8 @@ export default function ServiceSampleShowcase({ service }: Props) {
   };
 
   const getVideoSrc = (slug: string) => {
-    if (slug.includes('ai') || slug.includes('visualizer')) return '/ai-music-video-sample.mp4';
-    return '/videos/love-kills.mp4';
+    if (slug.includes('ai') || slug.includes('visualizer')) return '/video1.mp4';
+    return '/video2.mp4';
   };
 
   // Adjust volume on A/B switch
@@ -186,11 +211,27 @@ export default function ServiceSampleShowcase({ service }: Props) {
 
             <div className="sample-card-body audio-body">
               <div className="audio-meta">
-                <h3>{service.sampleTitle}</h3>
-                <p>{service.sampleDesc}</p>
+                <div className="audio-track-selector-bar">
+                  <small>PLAY ANY OF OUR {clientMasterTracks.length} AUTHENTIC CLIENT MASTER TRACKS:</small>
+                  <div className="audio-track-pills">
+                    {clientMasterTracks.map((t, i) => (
+                      <button
+                        key={t.slug}
+                        type="button"
+                        className={selectedMasterIndex === i ? 'track-pill active' : 'track-pill'}
+                        onClick={() => switchAudioTrack(i)}
+                      >
+                        {selectedMasterIndex === i && isPlaying ? '▶ ' : ''}{t.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <h3>{clientMasterTracks[selectedMasterIndex]?.title || service.sampleTitle}</h3>
+                <p>Artist: <strong>{clientMasterTracks[selectedMasterIndex]?.artist}</strong> · {service.sampleDesc}</p>
                 <div className="audio-specs">
                   <span><b>FORMAT:</b> 24-bit / 48kHz WAV &amp; 320kbps MP3</span>
-                  <span><b>LUFS:</b> {isAfter ? '-9.2 LUFS (Commercial Master)' : '-16.8 LUFS (Unmastered)'}</span>
+                  <span><b>LUFS:</b> {isAfter ? '-8.8 to -9.4 LUFS (Commercial Master)' : '-16.8 LUFS (Unmastered)'}</span>
                   <span><b>PROCESSING:</b> Analogue Outboard + Precision Dynamic EQ</span>
                 </div>
               </div>
