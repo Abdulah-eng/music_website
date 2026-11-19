@@ -20,6 +20,7 @@ function getArtworkSrc(img: string): string {
 
 export default function ArtworkLightboxModal({ artworks }: Props) {
   const [selectedArtwork, setSelectedArtwork] = useState<ArtworkProject | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   // Close on Escape key
   useEffect(() => {
@@ -62,13 +63,16 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
           >
             <div className="artwork-image-container">
               <Image
-                src={getArtworkSrc(item.image)}
+                src={failedImages[item.id] ? '/brand/placeholder.png' : getArtworkSrc(item.image)}
                 alt={`${item.title} by ${item.artist}`}
                 width={500}
                 height={500}
                 className="artwork-thumb-img"
                 loading="lazy"
                 unoptimized
+                onError={() => {
+                  setFailedImages((prev) => ({ ...prev, [item.id]: true }));
+                }}
               />
               <div className="artwork-overlay-hover">
                 <span className="artwork-view-tag">
@@ -113,13 +117,16 @@ export default function ArtworkLightboxModal({ artworks }: Props) {
               <div className="lightbox-art-display">
                 <div className="lightbox-image-wrap">
                   <Image
-                    src={getArtworkSrc(selectedArtwork.image)}
+                    src={failedImages[selectedArtwork.id] ? '/brand/placeholder.png' : getArtworkSrc(selectedArtwork.image)}
                     alt={`${selectedArtwork.title} by ${selectedArtwork.artist}`}
                     width={900}
                     height={900}
                     className="lightbox-master-img"
                     priority
                     unoptimized
+                    onError={() => {
+                      setFailedImages((prev) => ({ ...prev, [selectedArtwork.id]: true }));
+                    }}
                   />
                 </div>
               </div>

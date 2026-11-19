@@ -46,6 +46,41 @@ export default function TeamMemberList({ initialMembers }: Props) {
     } catch {}
   }, []);
 
+  if (members.length === 0) {
+    return (
+      <div
+        className="team-empty-state"
+        style={{
+          padding: '60px 24px',
+          textAlign: 'center',
+          border: '1px dashed var(--line)',
+          borderRadius: '12px',
+          background: 'var(--card-bg)',
+          margin: '0 auto',
+          maxWidth: '800px',
+        }}
+      >
+        <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px', lineHeight: 1.6 }}>
+          Our leadership and creative team profiles are currently being updated.
+        </p>
+        <div style={{ marginTop: '22px', display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <Link href="/contact" className="button button-orange">
+            Start a Project Enquiry ↗
+          </Link>
+          <a
+            href={siteConfig.whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button button-outline"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <MessageCircle size={14} color="#25D366" /> Chat on WhatsApp ↗
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="team-detailed-grid">
       {members.map((member) => (

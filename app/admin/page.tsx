@@ -1023,7 +1023,15 @@ export default function AdminManagementStudio() {
             </div>
 
             <div className="admin-team-list">
-              {allTeamMembers.map((m) => {
+              {allTeamMembers.length === 0 ? (
+                <div style={{ padding: '36px', textAlign: 'center', border: '1px dashed var(--line)', borderRadius: '8px', background: 'var(--card-bg)' }}>
+                  <UserPlus size={36} className="text-orange" style={{ margin: '0 auto 10px', display: 'block' }} />
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                    No team members published yet. Use the form above to add your first team member!
+                  </p>
+                </div>
+              ) : (
+                allTeamMembers.map((m) => {
                 const isCustom = customTeamMembers.some((c) => c.id === m.id);
                 return (
                   <div className="admin-team-row" key={m.id}>
@@ -1060,7 +1068,7 @@ export default function AdminManagementStudio() {
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
         )}
