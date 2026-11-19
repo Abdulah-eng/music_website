@@ -29,10 +29,11 @@ import {
   FileImage,
   FileVideo,
   Trash2,
+  UserPlus,
 } from 'lucide-react';
 import { services } from '@/data/services';
 import { artworkCatalog, audioCatalog, videoCatalog, webProjectsCatalog } from '@/data/portfolio';
-import { teamMembers } from '@/data/team';
+import { teamMembers, TeamMember } from '@/data/team';
 import { testimonials } from '@/data/testimonials';
 
 function getArtworkSrc(img: string): string {
@@ -94,6 +95,20 @@ export default function AdminManagementStudio() {
   const [allAudio, setAllAudio] = useState(audioCatalog);
   const [allVideos, setAllVideos] = useState(videoCatalog);
 
+  // Dynamic Team State & Form
+  const [allTeamMembers, setAllTeamMembers] = useState<TeamMember[]>(teamMembers);
+  const [customTeamMembers, setCustomTeamMembers] = useState<TeamMember[]>([]);
+  const [newTeamPhoto, setNewTeamPhoto] = useState<File | null>(null);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamRole, setNewTeamRole] = useState('');
+  const [newTeamDept, setNewTeamDept] = useState('');
+  const [newTeamBio, setNewTeamBio] = useState('');
+  const [newTeamCreds, setNewTeamCreds] = useState('');
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamSuccessMsg, setTeamSuccessMsg] = useState('');
+  const [teamErrorMsg, setTeamErrorMsg] = useState('');
+  const teamFileInputRef = useRef<HTMLInputElement | null>(null);
+
   const refreshProjects = () => {
     fetch('/api/portfolio')
       .then((res) => {
@@ -115,6 +130,21 @@ export default function AdminManagementStudio() {
         }
       })
       .catch((err) => console.warn('Portfolio load err:', err));
+
+    fetch('/api/team')
+      .then((res) => {
+        if (!res.ok) throw new Error('Team load error');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.teamMembers && Array.isArray(data.teamMembers)) {
+          setAllTeamMembers(data.teamMembers);
+        }
+        if (data.customTeamMembers && Array.isArray(data.customTeamMembers)) {
+          setCustomTeamMembers(data.customTeamMembers);
+        }
+      })
+      .catch((err) => console.warn('Team load err:', err));
   };
 
   // Helper: Retrieve active stored password or default 'helloworld'
@@ -301,6 +331,89 @@ export default function AdminManagementStudio() {
       } else {
         const d = await res.json();
         alert(d.error || 'Failed to delete project');
+      }
+    } catch (e: any) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  };
+
+  const handleAddTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTeamSuccessMsg('');
+    setTeamErrorMsg('');
+
+    if (!newTeamName.trim() || !newTeamRole.trim()) {
+      setTeamErrorMsg('Please provide both the Name and Role/Position.');
+      return;
+    }
+
+    setTeamLoading(true);
+    try {
+      const formData = new FormData();
+      if (newTeamPhoto) {
+        formData.append('photo', newTeamPhoto);
+      }
+      formData.append('name', newTeamName);
+      formData.append('role', newTeamRole);
+      formData.append('department', newTeamDept || 'Creative Direction & Music Services');
+      formData.append('bio', newTeamBio || 'Creative specialist at Mainahtunes Team.');
+      formData.append('credentials', newTeamCreds);
+
+      const res = await fetch('/api/team', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to add team member');
+      }
+
+      setTeamSuccessMsg(data.message || `Team member "${newTeamName}" added successfully!`);
+      setNewTeamPhoto(null);
+      setNewTeamName('');
+      setNewTeamRole('');
+      setNewTeamDept('');
+      setNewTeamBio('');
+      setNewTeamCreds('');
+      if (teamFileInputRef.current) teamFileInputRef.current.value = '';
+
+      if (data.member) {
+        setCustomTeamMembers((prev) => [data.member, ...prev.filter((m) => m.id !== data.member.id)]);
+        setAllTeamMembers((prev) => [data.member, ...prev.filter((m) => m.id !== data.member.id)]);
+        try {
+          const stored = localStorage.getItem('mainahtunes_custom_team');
+          const list = stored ? JSON.parse(stored) : [];
+          const updated = [data.member, ...list.filter((m: any) => m.id !== data.member.id)];
+          localStorage.setItem('mainahtunes_custom_team', JSON.stringify(updated));
+        } catch {}
+      }
+      refreshProjects();
+    } catch (err: any) {
+      setTeamErrorMsg(err.message || 'An error occurred while adding team member.');
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  const handleDeleteTeamMember = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete and unpublish "${name}" from the team roster?`)) return;
+    try {
+      const res = await fetch(`/api/team?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCustomTeamMembers((prev) => prev.filter((m) => m.id !== id));
+        setAllTeamMembers((prev) => prev.filter((m) => m.id !== id));
+        try {
+          const stored = localStorage.getItem('mainahtunes_custom_team');
+          if (stored) {
+            const list = JSON.parse(stored);
+            localStorage.setItem('mainahtunes_custom_team', JSON.stringify(list.filter((m: any) => m.id !== id)));
+          }
+        } catch {}
+        refreshProjects();
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to delete team member');
       }
     } catch (e: any) {
       alert(`Failed to delete: ${e.message}`);
@@ -513,7 +626,7 @@ export default function AdminManagementStudio() {
           <span><b>{allAudio.length}</b> Audio Samples</span>
           <span><b>{allVideos.length}</b> AI Videos</span>
           <span><b>08</b> Web Projects</span>
-          <span><b>{teamMembers.length}</b> Team Leaders</span>
+          <span><b>{allTeamMembers.length}</b> Team Leaders</span>
           <span><b>{customProjects.length}</b> Custom Uploads</span>
         </div>
       </section>
@@ -553,7 +666,7 @@ export default function AdminManagementStudio() {
             className={activeTab === 'team' ? 'admin-nav-tab active' : 'admin-nav-tab'}
             onClick={() => setActiveTab('team')}
           >
-            <Users size={14} /> Team &amp; Leadership ({teamMembers.length})
+            <Users size={14} /> Team &amp; Leadership ({allTeamMembers.length})
           </button>
           <button
             type="button"
@@ -753,33 +866,201 @@ export default function AdminManagementStudio() {
           <div className="admin-panel">
             <div className="panel-header">
               <div>
-                <h2>Executive Leadership &amp; Operational Roster ({teamMembers.length})</h2>
-                <p>Managed in <code>data/team.ts</code>. Includes Founder Amelia Clarke, Video Director Oliver Bennett, Operations Manager Sophie Mitchell, and Financial Manager Afolabi Ayodeji.</p>
+                <h2>Executive Leadership &amp; Operational Roster ({allTeamMembers.length})</h2>
+                <p>Publish new team members directly to the live website or manage standing leadership without writing code.</p>
               </div>
               <Link href="/team" target="_blank" className="button button-outline">
                 View Live Team Page ↗
               </Link>
             </div>
 
-            <div className="admin-team-list">
-              {teamMembers.map((m) => (
-                <div className="admin-team-row" key={m.id}>
-                  <div className="team-avatar-box">
-                    <img src={m.image} alt={m.name} />
-                  </div>
-                  <div className="team-details">
-                    <span className="role-tag">{m.role}</span>
-                    <h3>{m.name}</h3>
-                    <p className="team-dept">{m.department}</p>
-                    <p className="team-bio-text">{m.bio}</p>
-                    <div className="team-creds">
-                      {m.credentials.map((c) => (
-                        <span key={c}><CheckCircle2 size={13} /> {c}</span>
-                      ))}
-                    </div>
+            {/* Direct Team Member Publishing Form */}
+            <div className="upload-sample-grid" style={{ marginBottom: '32px' }}>
+              <div className="upload-form-card">
+                <div className="security-card-header" style={{ marginBottom: '16px' }}>
+                  <UserPlus size={20} className="text-orange" />
+                  <div>
+                    <h3 style={{ margin: 0 }}>Publish New Team Member</h3>
+                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Upload member photo and enter their role, department, and bio.
+                    </p>
                   </div>
                 </div>
-              ))}
+
+                {teamSuccessMsg && (
+                  <div className="security-alert success" role="alert">
+                    <CheckCircle2 size={16} />
+                    <span>{teamSuccessMsg}</span>
+                  </div>
+                )}
+
+                {teamErrorMsg && (
+                  <div className="security-alert error" role="alert">
+                    <AlertCircle size={16} />
+                    <span>{teamErrorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleAddTeamMember} className="security-form">
+                  {/* Photo Dropzone */}
+                  <div
+                    className="file-dropzone-box"
+                    style={{ padding: '20px', minHeight: 'auto' }}
+                    onClick={() => teamFileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={teamFileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setNewTeamPhoto(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <div className="dropzone-label">
+                      <UploadCloud size={24} className="text-orange" />
+                      <b>Upload Member Portrait Photo</b>
+                      <span>PNG, JPG, or WebP portrait format (recommended 800×1000px)</span>
+                    </div>
+                    {newTeamPhoto && (
+                      <div className="selected-file-badge">
+                        <Check size={14} className="text-orange" />
+                        <span>Selected: <b>{newTeamPhoto.name}</b></span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-grid" style={{ marginTop: '12px' }}>
+                    <label>
+                      Full Name *
+                      <input
+                        type="text"
+                        required
+                        value={newTeamName}
+                        onChange={(e) => setNewTeamName(e.target.value)}
+                        placeholder="e.g. Jordan Hayes"
+                      />
+                    </label>
+
+                    <label>
+                      Role / Position *
+                      <input
+                        type="text"
+                        required
+                        value={newTeamRole}
+                        onChange={(e) => setNewTeamRole(e.target.value)}
+                        placeholder="e.g. Senior Mixing &amp; Mastering Engineer"
+                      />
+                    </label>
+                  </div>
+
+                  <label>
+                    Department / Division
+                    <input
+                      type="text"
+                      value={newTeamDept}
+                      onChange={(e) => setNewTeamDept(e.target.value)}
+                      placeholder="e.g. Audio Engineering &amp; Studio Production"
+                    />
+                  </label>
+
+                  <label>
+                    Professional Biography
+                    <textarea
+                      rows={3}
+                      value={newTeamBio}
+                      onChange={(e) => setNewTeamBio(e.target.value)}
+                      placeholder="Describe their background, industry experience, and creative focus..."
+                    />
+                  </label>
+
+                  <label>
+                    Core Responsibilities &amp; Credentials (comma-separated)
+                    <input
+                      type="text"
+                      value={newTeamCreds}
+                      onChange={(e) => setNewTeamCreds(e.target.value)}
+                      placeholder="e.g. Multi-Track Audio Mixing, Dolby Atmos Calibration, Analog EQ Mastering"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="button button-orange"
+                    disabled={teamLoading}
+                    style={{ marginTop: '8px' }}
+                  >
+                    {teamLoading ? 'Publishing Team Member...' : 'Publish Team Member to Live Site ↗'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="security-info-card">
+                <h3>Live Team Member Architecture</h3>
+                <ul className="security-tips-list">
+                  <li>
+                    <b>Direct Live Publishing:</b> Any team member added here is immediately published to the live <code>/team</code> page without waiting for a re-compile.
+                  </li>
+                  <li>
+                    <b>Permanent Cloud Storage:</b> Portraits are saved permanently in cloud storage and mapped to the permanent team registry.
+                  </li>
+                  <li>
+                    <b>Instant Unpublish:</b> You can delete or unpublish custom members at any time using the red button on their card below.
+                  </li>
+                  <li>
+                    <b>Zero Database Required:</b> Backed by persistent cloud JSON storage, eliminating database costs and server maintenance.
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="panel-header" style={{ marginTop: '12px', borderTop: '1px solid var(--line)', paddingTop: '24px' }}>
+              <div>
+                <h3>Active Team Roster ({allTeamMembers.length})</h3>
+                <p>Showing both baseline agency leaders and dynamically published team members.</p>
+              </div>
+            </div>
+
+            <div className="admin-team-list">
+              {allTeamMembers.map((m) => {
+                const isCustom = customTeamMembers.some((c) => c.id === m.id);
+                return (
+                  <div className="admin-team-row" key={m.id}>
+                    <div className="team-avatar-box">
+                      <img src={m.image || '/team/amelia-clarke.jpeg'} alt={m.name} />
+                    </div>
+                    <div className="team-details">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="role-tag">{m.role}</span>
+                        {isCustom ? (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTeamMember(m.id, m.name)}
+                            className="button button-outline"
+                            style={{ padding: '3px 8px', fontSize: '11px', color: '#ff5c5c', borderColor: 'rgba(255, 92, 92, 0.3)' }}
+                            title="Delete / Unpublish"
+                          >
+                            <Trash2 size={12} style={{ display: 'inline', marginRight: '4px' }} /> Unpublish
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '10px', color: 'var(--orange)', fontWeight: 700, letterSpacing: '0.08em' }}>
+                            CORE LEADERSHIP
+                          </span>
+                        )}
+                      </div>
+                      <h3>{m.name}</h3>
+                      <p className="team-dept">{m.department}</p>
+                      <p className="team-bio-text">{m.bio}</p>
+                      <div className="team-creds">
+                        {m.credentials.map((c) => (
+                          <span key={c}><CheckCircle2 size={13} /> {c}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1192,8 +1473,8 @@ export default function AdminManagementStudio() {
           <div className="admin-panel">
             <div className="panel-header">
               <div>
-                <h2>New Item Code Generator</h2>
-                <p>Quickly format new artwork, team members, or testimonials without worrying about syntax.</p>
+                <h2>New Item Code Generator (Developer Helper)</h2>
+                <p>Generate structured TypeScript code snippets to paste directly into <code>data/portfolio.ts</code>, <code>data/team.ts</code>, or <code>data/testimonials.ts</code>. (Tip: You can now publish media samples and team members directly in their respective tabs without manually copying code!)</p>
               </div>
             </div>
 

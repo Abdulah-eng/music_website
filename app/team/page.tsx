@@ -1,9 +1,7 @@
-import Image from 'next/image';
-import Link from 'next/link';
 import type { Metadata } from 'next';
 import { teamMembers, upcomingRoles } from '@/data/team';
-import { siteConfig } from '@/data/siteConfig';
-import { ShieldCheck, CheckCircle2, Sparkles, Mail, ArrowRight, MessageCircle } from 'lucide-react';
+import TeamMemberList from '@/components/TeamMemberList';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Our Team & Leadership | MainahtunesTeam',
@@ -42,65 +40,7 @@ export default function TeamPage() {
           </p>
         </div>
 
-        <div className="team-detailed-grid">
-          {teamMembers.map((member) => (
-            <article className="team-detailed-card" key={member.id}>
-              <div className="team-photo-column">
-                <div className="team-photo-frame">
-                  <Image
-                    src={member.image}
-                    alt={`${member.name}, ${member.role}`}
-                    width={800}
-                    height={1000}
-                    priority
-                    unoptimized
-                  />
-                  <div className="photo-tag-overlay">
-                    <span>{member.department.toUpperCase()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="team-info-column">
-                <span className="team-role-pill">{member.role}</span>
-                <h2>{member.name}</h2>
-                <p className="team-bio-lead">{member.bio}</p>
-
-                <div className="team-credentials-box">
-                  <small>CORE RESPONSIBILITIES &amp; EXPERTISE</small>
-                  <div className="credentials-grid">
-                    {member.credentials.map((cred) => (
-                      <div key={cred} className="cred-item">
-                        <CheckCircle2 size={15} />
-                        <span>{cred}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="team-contact-action" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link
-                    href={`/contact?service=General%20Enquiry&project=${encodeURIComponent(
-                      `Attention: ${member.name} (${member.role})`
-                    )}`}
-                    className="button button-orange"
-                  >
-                    Enquire with {member.name.split(' ')[0]} <span>↗</span>
-                  </Link>
-                  <a
-                    href={siteConfig.whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="button button-outline"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <MessageCircle size={14} color="#25D366" /> Chat on WhatsApp ↗
-                  </a>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        <TeamMemberList initialMembers={teamMembers} />
       </section>
 
       {/* =========================================================================
