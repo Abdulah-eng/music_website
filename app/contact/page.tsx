@@ -89,6 +89,7 @@ function ContactFormInner() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [refId, setRefId] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (initialService) {
@@ -102,16 +103,60 @@ function ContactFormInner() {
     }
   }, [initialService]);
 
+  const validateField = (name: string, value: string): boolean => {
+    let err = '';
+    if (name === 'name' && !value.trim()) {
+      err = 'Please enter your name.';
+    } else if (name === 'email') {
+      if (!value.trim()) {
+        err = 'Email address is required.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+        err = 'Please enter a valid email address.';
+      }
+    } else if (name === 'service' && !value.trim()) {
+      err = 'Please select a required service.';
+    } else if (name === 'message') {
+      if (!value.trim()) {
+        err = 'Please describe your project objectives.';
+      } else if (value.trim().length < 10) {
+        err = 'Please provide at least 10 characters describing your project.';
+      }
+    }
+    setFieldErrors((prev) => ({ ...prev, [name]: err }));
+    return !err;
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      validateField(name, value);
+    }
+  };
+
+  const handleBlur = (
+    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    validateField(e.target.name, e.target.value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus('submitting');
     setErrorMessage('');
+
+    const isNameValid = validateField('name', formData.name);
+    const isEmailValid = validateField('email', formData.email);
+    const isServiceValid = validateField('service', formData.service);
+    const isMessageValid = validateField('message', formData.message);
+
+    if (!isNameValid || !isEmailValid || !isServiceValid || !isMessageValid) {
+      setErrorMessage('Please correct the highlighted fields before submitting.');
+      return;
+    }
+
+    setStatus('submitting');
 
     try {
       const response = await fetch('/api/contact', {
@@ -169,10 +214,24 @@ function ContactFormInner() {
           A confirmation has been logged. We will review your project scope and contact you at{' '}
           <code>{formData.email}</code> with tailored insights and next steps.
         </p>
-        <div className="actions" style={{ justifyContent: 'center', marginTop: '24px' }}>
+        <div className="actions" style={{ justifyContent: 'center', marginTop: '24px', gap: '12px' }}>
+          <a
+            href={`https://wa.me/447888610336?text=${encodeURIComponent(
+              `Hello MainahtunesTeam, I just submitted an enquiry (Ref: ${refId}) regarding ${
+                formData.service || 'creative services'
+              }.`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button button-outline"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <MessageCircle size={16} color="#25D366" />
+            Chat on WhatsApp About {refId} ↗
+          </a>
           <button
             type="button"
-            className="button button-outline"
+            className="button button-dark"
             onClick={() => {
               setStatus('idle');
               setFormData({
@@ -187,6 +246,7 @@ function ContactFormInner() {
                 message: '',
                 _hp: '',
               });
+              setFieldErrors({});
             }}
           >
             Submit Another Project
@@ -200,7 +260,7 @@ function ContactFormInner() {
   }
 
   return (
-    <form className="contact-form" onSubmit={handleSubmit}>
+    <form className="contact-form" onSubmit={handleSubmit} noValidate>
       <div className="form-heading">
         <small>PROJECT ENQUIRY &amp; CUSTOM QUOTATION</small>
         <h2>Let’s talk about your next move.</h2>
@@ -228,15 +288,18 @@ function ContactFormInner() {
       />
 
       <div className="form-grid">
-        <label>
+        <label className={fieldErrors.name ? 'form-field-error' : ''}>
           Your Name <span className="req">*</span>
           <input
             name="name"
             required
             value={formData.name}
             onChange={handleChange}
+            onBlur={handleBlur}
             placeholder="e.g. Alex Morgan"
+            className={fieldErrors.name ? 'input-error' : ''}
           />
+          {fieldErrors.name && <span className="field-error-msg">{fieldErrors.name}</span>}
         </label>
 
         <label>
@@ -249,7 +312,7 @@ function ContactFormInner() {
           />
         </label>
 
-        <label>
+        <label className={fieldErrors.email ? 'form-field-error' : ''}>
           Email Address <span className="req">*</span>
           <input
             name="email"
@@ -257,8 +320,11 @@ function ContactFormInner() {
             required
             value={formData.email}
             onChange={handleChange}
+            onBlur={handleBlur}
             placeholder="you@domain.com"
+            className={fieldErrors.email ? 'input-error' : ''}
           />
+          {fieldErrors.email && <span className="field-error-msg">{fieldErrors.email}</span>}
         </label>
 
         <label>
@@ -271,13 +337,15 @@ function ContactFormInner() {
           />
         </label>
 
-        <label>
+        <label className={fieldErrors.service ? 'form-field-error' : ''}>
           Required Service <span className="req">*</span>
           <select
             name="service"
             required
             value={formData.service}
             onChange={handleChange}
+            onBlur={handleBlur}
+            className={fieldErrors.service ? 'input-error' : ''}
           >
             <option value="" disabled>Select a service</option>
             {serviceOptions.map((opt) => (
@@ -286,6 +354,7 @@ function ContactFormInner() {
               </option>
             ))}
           </select>
+          {fieldErrors.service && <span className="field-error-msg">{fieldErrors.service}</span>}
         </label>
 
         <label>
@@ -332,7 +401,7 @@ function ContactFormInner() {
         </label>
       </div>
 
-      <label className="form-full">
+      <label className={`form-full ${fieldErrors.message ? 'form-field-error' : ''}`}>
         Tell Us About Your Project &amp; Creative Objectives <span className="req">*</span>
         <textarea
           name="message"
@@ -340,8 +409,11 @@ function ContactFormInner() {
           rows={6}
           value={formData.message}
           onChange={handleChange}
+          onBlur={handleBlur}
+          className={fieldErrors.message ? 'input-error' : ''}
           placeholder="Please describe your track, current sound, visual direction, target audience, release goals, or specific deliverables you require..."
         />
+        {fieldErrors.message && <span className="field-error-msg">{fieldErrors.message}</span>}
       </label>
 
       <div className="form-footer-bar">
@@ -351,7 +423,7 @@ function ContactFormInner() {
           disabled={status === 'submitting'}
         >
           {status === 'submitting' ? (
-            'Sending Project Enquiry...'
+            'Transmitting Project Enquiry...'
           ) : (
             <>
               Submit Project Enquiry <Send size={15} style={{ marginLeft: '8px' }} />

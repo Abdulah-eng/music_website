@@ -2,12 +2,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { teamMembers, upcomingRoles } from '@/data/team';
-import { ShieldCheck, CheckCircle2, Sparkles, Mail, ArrowRight } from 'lucide-react';
+import { siteConfig } from '@/data/siteConfig';
+import { ShieldCheck, CheckCircle2, Sparkles, Mail, ArrowRight, MessageCircle } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Our Team & Leadership | MainahtunesTeam',
   description:
-    'Meet the leadership, financial stewardship, and creative professionals driving MainahtunesTeam agency operations.',
+    'Meet the leadership, creative direction, video production, and client success professionals driving MainahtunesTeam agency operations.',
 };
 
 export default function TeamPage() {
@@ -22,8 +23,8 @@ export default function TeamPage() {
           Meet <em>Our Team.</em>
         </h1>
         <p>
-          MainahtunesTeam combines seasoned financial management, audio engineering, visual art direction,
-          and digital technology to deliver dependable, high-impact creative services.
+          MainahtunesTeam combines seasoned creative direction, international music production, cinematic video direction,
+          client operations, and financial management to deliver dependable, high-impact creative solutions.
         </p>
       </section>
 
@@ -34,10 +35,10 @@ export default function TeamPage() {
         <div className="section-heading">
           <div>
             <div className="eyebrow">EXECUTIVE LEADERSHIP &amp; STEWARDSHIP</div>
-            <h2>Operational &amp; Financial Management</h2>
+            <h2>Creative Direction, Production &amp; Operations</h2>
           </div>
           <p>
-            Committed to the financial planning, budget oversight, and transparent stewardship that empower our creative teams.
+            Meet the leaders guiding creative direction, cinematic video production, client success, and financial stewardship across every release.
           </p>
         </div>
 
@@ -52,6 +53,7 @@ export default function TeamPage() {
                     width={800}
                     height={1000}
                     priority
+                    unoptimized
                   />
                   <div className="photo-tag-overlay">
                     <span>{member.department.toUpperCase()}</span>
@@ -76,15 +78,24 @@ export default function TeamPage() {
                   </div>
                 </div>
 
-                <div className="team-contact-action">
+                <div className="team-contact-action" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <Link
                     href={`/contact?service=General%20Enquiry&project=${encodeURIComponent(
-                      `Attention: ${member.name}`
+                      `Attention: ${member.name} (${member.role})`
                     )}`}
                     className="button button-orange"
                   >
-                    Contact Management Desk <span>↗</span>
+                    Enquire with {member.name.split(' ')[0]} <span>↗</span>
                   </Link>
+                  <a
+                    href={siteConfig.whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="button button-outline"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <MessageCircle size={14} color="#25D366" /> Chat on WhatsApp ↗
+                  </a>
                 </div>
               </div>
             </article>

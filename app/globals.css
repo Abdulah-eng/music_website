@@ -5250,3 +5250,438 @@
   color: #f6a24e !important;
   white-space: nowrap;
 }
+
+/* =========================================================================
+   PAGE TRANSITIONS & SUBTLE ANIMATIONS
+   ========================================================================= */
+main {
+  animation: pageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================================
+   SMOOTH HOVER EFFECTS ON SERVICE & PORTFOLIO CARDS
+   ========================================================================= */
+.service-card,
+.pillar,
+.work-card,
+.artwork-card,
+.ai-video-card,
+.promo-case-card,
+.portfolio-card,
+.team-detailed-card,
+.department-card,
+.admin-art-card,
+.admin-audio-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease,
+              background-color 0.3s ease;
+}
+
+.service-card:hover,
+.pillar:hover,
+.work-card:hover,
+.promo-case-card:hover,
+.department-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--orange);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.1), 0 0 24px rgba(244, 119, 19, 0.12);
+}
+
+.artwork-card:hover {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), 0 0 30px rgba(244, 119, 19, 0.2);
+}
+
+.artwork-card:hover .artwork-thumb-img {
+  transform: scale(1.05);
+}
+
+.artwork-thumb-img {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.team-detailed-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(244, 119, 19, 0.4);
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.18), 0 0 30px rgba(244, 119, 19, 0.15);
+}
+
+/* =========================================================================
+   FLOATING WHATSAPP BUTTON ENHANCEMENT
+   ========================================================================= */
+.whatsapp-floating-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.whatsapp-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25D366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.45);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  position: relative;
+}
+
+.whatsapp-icon-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #25D366;
+  opacity: 0.8;
+  animation: waPulse 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+@keyframes waPulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  70% { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+.whatsapp-floating-btn:hover .whatsapp-icon-wrap {
+  transform: scale(1.1);
+  box-shadow: 0 12px 32px rgba(37, 211, 102, 0.6);
+}
+
+.whatsapp-tooltip {
+  background: rgba(16, 31, 57, 0.95);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+@media(max-width: 600px) {
+  .whatsapp-tooltip {
+    display: none;
+  }
+  .whatsapp-floating-btn {
+    bottom: 20px;
+    right: 20px;
+  }
+  .whatsapp-icon-wrap {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* =========================================================================
+   BACK-TO-TOP BUTTON
+   ========================================================================= */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 88px;
+  right: 24px;
+  z-index: 998;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fadeInScale 0.2s ease-out;
+}
+
+.back-to-top-text {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  margin-top: 1px;
+  color: var(--orange);
+}
+
+.back-to-top-btn:hover {
+  transform: translateY(-4px);
+  border-color: var(--orange);
+  background: var(--navy);
+  color: #ffffff;
+  box-shadow: 0 10px 28px rgba(244, 119, 19, 0.3);
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media(max-width: 600px) {
+  .back-to-top-btn {
+    bottom: 78px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* =========================================================================
+   PROFESSIONAL LOADING STATE STYLING
+   ========================================================================= */
+.global-page-loader {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.loader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  max-width: 320px;
+}
+
+.loader-equalizer {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 48px;
+  padding-bottom: 4px;
+}
+
+.eq-bar {
+  width: 5px;
+  background: linear-gradient(180deg, var(--orange) 0%, #ff9d47 100%);
+  border-radius: 4px;
+  animation: eqBounce 1.2s ease-in-out infinite;
+}
+
+.bar-1 { height: 18px; animation-delay: 0.0s; }
+.bar-2 { height: 38px; animation-delay: 0.2s; }
+.bar-3 { height: 48px; animation-delay: 0.4s; }
+.bar-4 { height: 32px; animation-delay: 0.1s; }
+.bar-5 { height: 22px; animation-delay: 0.3s; }
+
+@keyframes eqBounce {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+.loader-brand b {
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+  display: block;
+}
+
+.loader-brand small {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: var(--orange);
+  font-weight: 700;
+  display: block;
+  margin-top: 3px;
+}
+
+.loader-progress-track {
+  width: 140px;
+  height: 3px;
+  background: var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.loader-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  background: var(--orange);
+  border-radius: 3px;
+  animation: shimmerMove 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmerMove {
+  0% { left: -40%; width: 40%; }
+  50% { width: 60%; }
+  100% { left: 100%; width: 40%; }
+}
+
+.loader-status-text {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* =========================================================================
+   CONTACT FORM VALIDATION STYLING
+   ========================================================================= */
+.form-field-error input,
+.form-field-error select,
+.form-field-error textarea,
+.input-error {
+  border-color: #ff3b30 !important;
+  background: rgba(255, 59, 48, 0.04) !important;
+}
+
+.field-error-msg {
+  display: block;
+  font-size: 10.5px;
+  color: #ff3b30;
+  font-weight: 600;
+  margin-top: 4px;
+  animation: shakeX 0.3s ease-in-out;
+}
+
+@keyframes shakeX {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* =========================================================================
+   MOBILE HEADER STRICT SINGLE-ROW ALIGNMENT (PREVENTS LINE BREAKS)
+   ========================================================================= */
+@media(max-width: 900px) {
+  .site-header {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    padding: 0 16px !important;
+    gap: 12px !important;
+  }
+
+  .brand {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 95px) !important;
+    overflow: hidden !important;
+  }
+
+  .brand img {
+    width: 36px !important;
+    height: 36px !important;
+    flex-shrink: 0 !important;
+    object-fit: contain !important;
+  }
+
+  .brand span {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    line-height: 1.25 !important;
+  }
+
+  .brand b {
+    font-size: 11.5px !important;
+    letter-spacing: 0.06em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .brand small {
+    font-size: 7px !important;
+    letter-spacing: 0.1em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .header-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+  }
+
+  .theme-toggle-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    border-radius: 8px !important;
+    padding: 0 !important;
+  }
+
+  .topline {
+    padding: 0 12px !important;
+    height: 26px !important;
+    font-size: 8px !important;
+    justify-content: center !important;
+  }
+
+  .topline-center,
+  .topline-right {
+    display: none !important;
+  }
+}
+

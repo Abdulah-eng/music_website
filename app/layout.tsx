@@ -3,6 +3,7 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WhatsAppFloatingButton from '@/components/WhatsAppFloatingButton';
+import BackToTopButton from '@/components/BackToTopButton';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
@@ -97,6 +98,7 @@ export default function RootLayout({
           {children}
           <Footer />
           <WhatsAppFloatingButton />
+          <BackToTopButton />
         </ThemeProvider>
       </body>
     </html>

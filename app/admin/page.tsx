@@ -513,7 +513,7 @@ export default function AdminManagementStudio() {
           <span><b>{allAudio.length}</b> Audio Samples</span>
           <span><b>{allVideos.length}</b> AI Videos</span>
           <span><b>08</b> Web Projects</span>
-          <span><b>04</b> Testimonials</span>
+          <span><b>{teamMembers.length}</b> Team Leaders</span>
           <span><b>{customProjects.length}</b> Custom Uploads</span>
         </div>
       </section>
@@ -753,8 +753,8 @@ export default function AdminManagementStudio() {
           <div className="admin-panel">
             <div className="panel-header">
               <div>
-                <h2>Executive Leadership &amp; Operational Roster</h2>
-                <p>Managed in <code>data/team.ts</code>. Includes Afolabi Ayodeji (Financial Manager).</p>
+                <h2>Executive Leadership &amp; Operational Roster ({teamMembers.length})</h2>
+                <p>Managed in <code>data/team.ts</code>. Includes Founder Amelia Clarke, Video Director Oliver Bennett, Operations Manager Sophie Mitchell, and Financial Manager Afolabi Ayodeji.</p>
               </div>
               <Link href="/team" target="_blank" className="button button-outline">
                 View Live Team Page ↗

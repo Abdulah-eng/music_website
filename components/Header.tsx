@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Sun, Moon, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Menu, X, Sun, Moon, ArrowUpRight, Sparkles, MessageCircle } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
+import { siteConfig } from '@/data/siteConfig';
 
 const links = [
   { href: '/', label: 'Home' },
@@ -175,6 +176,26 @@ export default function Header() {
               >
                 Start Your Project <span>↗</span>
               </Link>
+
+              <a
+                href={siteConfig.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button button-outline"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderColor: 'rgba(37, 211, 102, 0.4)',
+                  color: '#25D366',
+                  marginTop: '10px',
+                  width: '100%',
+                }}
+                onClick={() => setMobileOpen(false)}
+              >
+                <MessageCircle size={16} /> Chat on WhatsApp ↗
+              </a>
 
               <div className="drawer-contact-info">
                 <small>DIRECT EMAIL</small>
