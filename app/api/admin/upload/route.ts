@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const directUrl = (formData.get('fileUrl') as string)?.trim();
     const category = (formData.get('category') as 'artwork' | 'audio' | 'video') || 'artwork';
     const title = (formData.get('title') as string) || '';
     const artist = (formData.get('artist') as string) || 'Mainahtunes Client Session';
@@ -13,15 +14,38 @@ export async function POST(req: NextRequest) {
     const description = (formData.get('description') as string) || 'Uploaded via MainahtunesStudio Project Uploader';
     const deliverablesRaw = formData.get('deliverables') as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided in upload request.' }, { status: 400 });
+    if (!file && !directUrl) {
+      return NextResponse.json(
+        { error: 'Please select a media file to upload or enter a direct Video/Stream URL.' },
+        { status: 400 }
+      );
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    let resolvedFileUrl = directUrl || '';
+    let resolvedFilename = directUrl ? 'external-stream' : '';
+    let resolvedProvider: any = 'external-cdn';
 
-    // 1. Upload file to permanent external cloud storage
-    const uploadResult = await uploadToStorage(buffer, file.name, category, file.type);
+    // If file is provided, process file upload
+    if (file) {
+      // Check serverless upload limit (4.5 MB)
+      if (file.size > 4.5 * 1024 * 1024) {
+        return NextResponse.json(
+          {
+            error: `File size is ${(file.size / 1024 / 1024).toFixed(1)} MB. Serverless hosting restricts direct uploads to 4.5 MB. Please link large music videos via the "Video URL / Embed Link" option (YouTube, Vimeo, Google Drive, or CDN link).`,
+          },
+          { status: 413 }
+        );
+      }
+
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // Upload file to permanent external cloud storage
+      const uploadResult = await uploadToStorage(buffer, file.name, category, file.type);
+      resolvedFileUrl = uploadResult.url;
+      resolvedFilename = uploadResult.filename;
+      resolvedProvider = uploadResult.provider;
+    }
 
     // 2. Format custom project record
     const projectId = `custom-${category}-${Date.now().toString(36)}`;
@@ -37,17 +61,17 @@ export async function POST(req: NextRequest) {
     const projectRecord: CustomProjectRecord = {
       id: projectId,
       category,
-      title: title || file.name.replace(/\.[^/.]+$/, ''),
+      title: title || (file ? file.name.replace(/\.[^/.]+$/, '') : 'Featured Music Video'),
       artist: artist || 'Mainahtunes Client Session',
       style,
       description,
       concept: description,
-      fileUrl: uploadResult.url,
-      fileName: uploadResult.filename,
+      fileUrl: resolvedFileUrl,
+      fileName: resolvedFilename,
       deliverables,
       format: category === 'audio' ? '24-bit WAV / 320k MP3 Master' : category === 'video' ? '1080p / 4K MP4' : '3000 x 3000 px Master',
       lufs: category === 'audio' ? '-9.0 LUFS' : undefined,
-      duration: category === 'video' ? '02:30' : undefined,
+      duration: category === 'video' ? '03:15' : undefined,
       createdAt: new Date().toISOString(),
     };
 
@@ -58,10 +82,10 @@ export async function POST(req: NextRequest) {
       success: true,
       category,
       project: projectRecord,
-      publicUrl: uploadResult.url,
-      provider: uploadResult.provider,
-      filename: uploadResult.filename,
-      message: `Project "${projectRecord.title}" successfully uploaded and published to the live portfolio!`,
+      publicUrl: resolvedFileUrl,
+      provider: resolvedProvider,
+      filename: resolvedFilename,
+      message: `Project "${projectRecord.title}" successfully published to the live portfolio!`,
     });
   } catch (error: any) {
     console.error('Admin upload error:', error);

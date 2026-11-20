@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import HomeHeroStage from '@/components/HomeHeroStage';
+import HomeTeamPreview from '@/components/HomeTeamPreview';
 import {
   Sparkles,
   ArrowUpRight,
@@ -378,44 +379,9 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          SECTION 6: OUR TEAM PREVIEW
+          SECTION 6: OUR TEAM PREVIEW (DYNAMIC)
          ========================================================================= */}
-      <section className="section team-preview-section">
-        <div className="section-heading">
-          <div>
-            <div className="eyebrow">THE PEOPLE BEHIND THE VISION</div>
-            <h2>
-              Meet our <em>leadership &amp; team.</em>
-            </h2>
-          </div>
-          <p>
-            Dedicated to the financial stewardship, operational planning, and creative execution of your projects.
-          </p>
-        </div>
-
-        <div className="team-preview-grid">
-          {teamMembers.map((member) => (
-            <article className="team-preview-card" key={member.id}>
-              <div className="team-preview-photo">
-                <Image
-                  src={member.image}
-                  alt={`${member.name}, ${member.role}`}
-                  width={600}
-                  height={750}
-                />
-              </div>
-              <div className="team-preview-info">
-                <span className="team-preview-role">{member.role.toUpperCase()}</span>
-                <h3>{member.name}</h3>
-                <p>{member.bio}</p>
-                <Link href="/team" className="text-link">
-                  View full team profile &amp; credentials ↗
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <HomeTeamPreview initialMembers={teamMembers} />
 
       {/* =========================================================================
           FINAL CINEMATIC CTA BAND

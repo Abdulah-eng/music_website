@@ -30,6 +30,9 @@ import {
   FileVideo,
   Trash2,
   UserPlus,
+  Edit3,
+  X,
+  Link2,
 } from 'lucide-react';
 import { services } from '@/data/services';
 import { artworkCatalog, audioCatalog, videoCatalog, webProjectsCatalog } from '@/data/portfolio';
@@ -73,6 +76,8 @@ export default function AdminManagementStudio() {
   // Sample File Upload State
   const [uploadCategory, setUploadCategory] = useState<'artwork' | 'audio' | 'video'>('artwork');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadVideoUrl, setUploadVideoUrl] = useState('');
+  const [uploadVideoMode, setUploadVideoMode] = useState<'url' | 'file'>('url');
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadArtist, setUploadArtist] = useState('');
   const [uploadDesc, setUploadDesc] = useState('');
@@ -104,6 +109,9 @@ export default function AdminManagementStudio() {
   const [newTeamDept, setNewTeamDept] = useState('');
   const [newTeamBio, setNewTeamBio] = useState('');
   const [newTeamCreds, setNewTeamCreds] = useState('');
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingMemberImage, setEditingMemberImage] = useState<string>('');
+  const [selectedPresetPhoto, setSelectedPresetPhoto] = useState<string>('');
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamSuccessMsg, setTeamSuccessMsg] = useState('');
   const [teamErrorMsg, setTeamErrorMsg] = useState('');
@@ -298,24 +306,46 @@ export default function AdminManagementStudio() {
     }
   };
 
-  // Direct File Upload Handler
+  // Direct File / Video Stream Upload Handler
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploadErrorMsg('');
     setUploadSuccessMsg('');
 
-    if (!uploadFile) {
-      setUploadErrorMsg('Please select a file to upload.');
-      return;
+    const isVideoUrl = uploadCategory === 'video' && uploadVideoMode === 'url';
+
+    if (isVideoUrl) {
+      if (!uploadVideoUrl.trim()) {
+        setUploadErrorMsg('Please enter a Video URL (YouTube, Vimeo, Google Drive, or direct MP4 link).');
+        return;
+      }
+    } else {
+      if (!uploadFile) {
+        setUploadErrorMsg('Please select a file to upload.');
+        return;
+      }
+      if (uploadFile.size > 4.5 * 1024 * 1024) {
+        setUploadErrorMsg(
+          `The selected file is ${(uploadFile.size / 1024 / 1024).toFixed(1)} MB. Vercel serverless has a 4.5 MB direct upload limit. For large music videos, please switch to the "Link Video via URL" option above to paste a YouTube, Vimeo, Google Drive, or CDN link instead.`
+        );
+        return;
+      }
     }
 
     setUploadLoading(true);
     try {
       const formData = new FormData();
-      formData.append('file', uploadFile);
+      if (isVideoUrl) {
+        formData.append('fileUrl', uploadVideoUrl.trim());
+      } else if (uploadFile) {
+        formData.append('file', uploadFile);
+      }
       formData.append('category', uploadCategory);
-      formData.append('title', uploadTitle || uploadFile.name);
-      formData.append('artist', uploadArtist);
+      formData.append(
+        'title',
+        uploadTitle || (uploadFile ? uploadFile.name.replace(/\.[^/.]+$/, '') : 'Featured Music Video')
+      );
+      formData.append('artist', uploadArtist || 'Mainahtunes Client Session');
       formData.append('description', uploadDesc);
 
       const res = await fetch('/api/admin/upload', {
@@ -323,14 +353,27 @@ export default function AdminManagementStudio() {
         body: formData,
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        if (res.status === 413 || text.includes('Request Entity Too Large')) {
+          throw new Error(
+            `The file is too large (${uploadFile ? (uploadFile.size / 1024 / 1024).toFixed(1) + 'MB' : 'exceeds limit'}). Vercel serverless hosting restricts direct web uploads to 4.5 MB. Please switch to "Link Video via URL" to publish this video via YouTube, Vimeo, Google Drive, or direct cloud link.`
+          );
+        }
+        throw new Error(`Upload error (${res.status}): ${text.substring(0, 120)}`);
+      }
+
       if (!res.ok) {
         throw new Error(data.error || 'Upload failed');
       }
 
-      setUploadSuccessMsg(data.message || 'File uploaded successfully!');
-      setUploadedUrl(data.publicUrl || data.publicPath || '');
+      setUploadSuccessMsg(data.message || 'Project sample published successfully to the live portfolio!');
+      setUploadedUrl(data.publicUrl || uploadVideoUrl || '');
       setUploadFile(null);
+      setUploadVideoUrl('');
       setUploadTitle('');
       setUploadArtist('');
       setUploadDesc('');
@@ -376,6 +419,43 @@ export default function AdminManagementStudio() {
     }
   };
 
+  const handleStartEditTeamMember = (m: TeamMember) => {
+    setEditingMemberId(m.id);
+    setNewTeamName(m.name);
+    setNewTeamRole(m.role);
+    setNewTeamDept(m.department || '');
+    setNewTeamBio(m.bio || '');
+    setNewTeamCreds((m.credentials || []).join(', '));
+    setEditingMemberImage(m.image || '');
+    setSelectedPresetPhoto(m.image || '');
+    setNewTeamPhoto(null);
+    setTeamSuccessMsg('');
+    setTeamErrorMsg('');
+    const formElement = document.getElementById('team-edit-form-box');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditTeamMember = () => {
+    setEditingMemberId(null);
+    setEditingMemberImage('');
+    setSelectedPresetPhoto('');
+    setNewTeamPhoto(null);
+    setNewTeamName('');
+    setNewTeamRole('');
+    setNewTeamDept('');
+    setNewTeamBio('');
+    setNewTeamCreds('');
+    setTeamSuccessMsg('');
+    setTeamErrorMsg('');
+    if (teamFileInputRef.current) teamFileInputRef.current.value = '';
+  };
+
+  const handleCopyTeamCode = () => {
+    const formatted = `export const teamMembers: TeamMember[] = ${JSON.stringify(allTeamMembers, null, 2)};`;
+    navigator.clipboard.writeText(formatted);
+    setTeamSuccessMsg('Team roster TypeScript code copied to clipboard! You can paste it directly into data/team.ts anytime.');
+  };
+
   const handleAddTeamMember = async (e: React.FormEvent) => {
     e.preventDefault();
     setTeamSuccessMsg('');
@@ -389,8 +469,14 @@ export default function AdminManagementStudio() {
     setTeamLoading(true);
     try {
       const formData = new FormData();
+      if (editingMemberId) {
+        formData.append('id', editingMemberId);
+      }
       if (newTeamPhoto) {
         formData.append('photo', newTeamPhoto);
+      }
+      if (selectedPresetPhoto || editingMemberImage) {
+        formData.append('existingImage', selectedPresetPhoto || editingMemberImage);
       }
       formData.append('name', newTeamName);
       formData.append('role', newTeamRole);
@@ -405,31 +491,38 @@ export default function AdminManagementStudio() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to add team member');
+        throw new Error(data.error || 'Failed to save team member');
       }
 
-      setTeamSuccessMsg(data.message || `Team member "${newTeamName}" added successfully!`);
-      setNewTeamPhoto(null);
-      setNewTeamName('');
-      setNewTeamRole('');
-      setNewTeamDept('');
-      setNewTeamBio('');
-      setNewTeamCreds('');
-      if (teamFileInputRef.current) teamFileInputRef.current.value = '';
+      const savedMember: TeamMember = data.member || {
+        id: editingMemberId || `member-${newTeamName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now().toString(36)}`,
+        name: newTeamName,
+        role: newTeamRole,
+        department: newTeamDept || 'Creative Direction & Music Services',
+        bio: newTeamBio || 'Creative specialist at Mainahtunes Team.',
+        image: selectedPresetPhoto || editingMemberImage || '/team/amelia-clarke.jpeg',
+        credentials: newTeamCreds ? newTeamCreds.split(',').map((c) => c.trim()).filter(Boolean) : ['Creative Direction', 'Project Delivery'],
+      };
 
-      if (data.member) {
-        setCustomTeamMembers((prev) => [data.member, ...prev.filter((m) => m.id !== data.member.id)]);
-        setAllTeamMembers((prev) => [data.member, ...prev.filter((m) => m.id !== data.member.id)]);
-        try {
-          const stored = localStorage.getItem('mainahtunes_custom_team');
-          const list = stored ? JSON.parse(stored) : [];
-          const updated = [data.member, ...list.filter((m: any) => m.id !== data.member.id)];
-          localStorage.setItem('mainahtunes_custom_team', JSON.stringify(updated));
-        } catch {}
-      }
+      setCustomTeamMembers((prev) => [savedMember, ...prev.filter((m) => m.id !== savedMember.id)]);
+      setAllTeamMembers((prev) => [savedMember, ...prev.filter((m) => m.id !== savedMember.id)]);
+      try {
+        const stored = localStorage.getItem('mainahtunes_custom_team');
+        const list = stored ? JSON.parse(stored) : [];
+        const updated = [savedMember, ...list.filter((m: any) => m.id !== savedMember.id)];
+        localStorage.setItem('mainahtunes_custom_team', JSON.stringify(updated));
+      } catch {}
+
+      setTeamSuccessMsg(
+        editingMemberId
+          ? `Team member "${newTeamName}" updated and saved successfully!`
+          : `Team member "${newTeamName}" published successfully!`
+      );
+
+      handleCancelEditTeamMember();
       refreshProjects();
     } catch (err: any) {
-      setTeamErrorMsg(err.message || 'An error occurred while adding team member.');
+      setTeamErrorMsg(err.message || 'An error occurred while saving team member.');
     } finally {
       setTeamLoading(false);
     }
@@ -886,7 +979,33 @@ export default function AdminManagementStudio() {
             <div className="admin-cards-grid">
               {allVideos.map((v) => (
                 <div className="admin-audio-card" key={v.id}>
-                  <video controls src={v.videoSrc} className="service-sample-video" preload="metadata" />
+                  {v.videoSrc.includes('youtube.com') || v.videoSrc.includes('youtu.be') ? (
+                    <iframe
+                      src={
+                        v.videoSrc.includes('youtu.be/')
+                          ? `https://www.youtube.com/embed/${v.videoSrc.split('youtu.be/')[1]?.split('?')[0]}`
+                          : `https://www.youtube.com/embed/${v.videoSrc.split('v=')[1]?.split('&')[0] || ''}`
+                      }
+                      title={v.title}
+                      allowFullScreen
+                      style={{ width: '100%', aspectRatio: '16/9', border: 'none', borderRadius: '6px' }}
+                    />
+                  ) : v.videoSrc.includes('vimeo.com') ? (
+                    <iframe
+                      src={`https://player.vimeo.com/video/${v.videoSrc.split('vimeo.com/')[1]?.split('?')[0]}`}
+                      title={v.title}
+                      allowFullScreen
+                      style={{ width: '100%', aspectRatio: '16/9', border: 'none', borderRadius: '6px' }}
+                    />
+                  ) : v.videoSrc.includes('drive.google.com') ? (
+                    <iframe
+                      src={v.videoSrc.replace(/\/view(\?.*)?$/, '/preview')}
+                      title={v.title}
+                      style={{ width: '100%', aspectRatio: '16/9', border: 'none', borderRadius: '6px' }}
+                    />
+                  ) : (
+                    <video controls src={v.videoSrc} className="service-sample-video" preload="metadata" />
+                  )}
                   <span className="style-tag" style={{ marginTop: '8px' }}>{v.type}</span>
                   <h3>{v.title}</h3>
                   <p>{v.description}</p>
@@ -913,18 +1032,53 @@ export default function AdminManagementStudio() {
               </Link>
             </div>
 
-            {/* Direct Team Member Publishing Form */}
-            <div className="upload-sample-grid" style={{ marginBottom: '32px' }}>
+            {/* Direct Team Member Publishing / Editing Form */}
+            <div className="upload-sample-grid" style={{ marginBottom: '32px' }} id="team-edit-form-box">
               <div className="upload-form-card">
                 <div className="security-card-header" style={{ marginBottom: '16px' }}>
-                  <UserPlus size={20} className="text-orange" />
+                  {editingMemberId ? (
+                    <Edit3 size={20} className="text-orange" />
+                  ) : (
+                    <UserPlus size={20} className="text-orange" />
+                  )}
                   <div>
-                    <h3 style={{ margin: 0 }}>Publish New Team Member</h3>
+                    <h3 style={{ margin: 0 }}>
+                      {editingMemberId ? 'Edit Team Member Details' : 'Publish New Team Member'}
+                    </h3>
                     <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Upload member photo and enter their role, department, and bio.
+                      {editingMemberId
+                        ? 'Update their role, department, biography, credentials, or photo below.'
+                        : 'Upload member photo and enter their role, department, and bio.'}
                     </p>
                   </div>
                 </div>
+
+                {editingMemberId && (
+                  <div
+                    className="security-alert"
+                    style={{
+                      background: 'rgba(255, 107, 0, 0.1)',
+                      borderColor: 'rgba(255, 107, 0, 0.3)',
+                      color: 'var(--orange)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <span>
+                      Editing: <b>{newTeamName || 'Team Member'}</b> ({newTeamRole || 'Active'})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCancelEditTeamMember}
+                      className="button button-outline"
+                      style={{ padding: '2px 8px', fontSize: '11px' }}
+                    >
+                      <X size={12} style={{ display: 'inline', marginRight: '3px' }} /> Cancel Edit
+                    </button>
+                  </div>
+                )}
 
                 {teamSuccessMsg && (
                   <div className="security-alert success" role="alert">
@@ -954,20 +1108,47 @@ export default function AdminManagementStudio() {
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           setNewTeamPhoto(e.target.files[0]);
+                          setSelectedPresetPhoto('');
                         }
                       }}
                     />
                     <div className="dropzone-label">
                       <UploadCloud size={24} className="text-orange" />
-                      <b>Upload Member Portrait Photo</b>
+                      <b>{editingMemberId ? 'Change Member Portrait Photo' : 'Upload Member Portrait Photo'}</b>
                       <span>PNG, JPG, or WebP portrait format (recommended 800×1000px)</span>
                     </div>
-                    {newTeamPhoto && (
+                    {newTeamPhoto ? (
                       <div className="selected-file-badge">
                         <Check size={14} className="text-orange" />
                         <span>Selected: <b>{newTeamPhoto.name}</b></span>
                       </div>
-                    )}
+                    ) : (editingMemberImage || selectedPresetPhoto) ? (
+                      <div className="selected-file-badge">
+                        <Check size={14} className="text-orange" />
+                        <span>Current Photo: <b>{selectedPresetPhoto || editingMemberImage}</b></span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Preset Photos Quick Selector */}
+                  <div style={{ marginTop: '10px' }}>
+                    <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Or select one of your uploaded team photos:
+                    </label>
+                    <select
+                      value={selectedPresetPhoto}
+                      onChange={(e) => {
+                        setSelectedPresetPhoto(e.target.value);
+                        setNewTeamPhoto(null);
+                      }}
+                      className="services-search-input"
+                      style={{ marginTop: '4px', width: '100%', fontSize: '12px', padding: '6px 10px' }}
+                    >
+                      <option value="">-- Choose from existing team photos or keep uploaded file --</option>
+                      <option value="/team/amelia-clarke.jpeg">Amelia Clarke (/team/amelia-clarke.jpeg or /image2.jpeg)</option>
+                      <option value="/team/oliver-bennett.jpeg">Oliver Bennett (/team/oliver-bennett.jpeg or /image1.jpeg)</option>
+                      <option value="/team/sophie-mitchell.jpeg">Sophie Mitchell (/team/sophie-mitchell.jpeg or /image3.jpeg)</option>
+                    </select>
                   </div>
 
                   <div className="form-grid" style={{ marginTop: '12px' }}>
@@ -978,7 +1159,7 @@ export default function AdminManagementStudio() {
                         required
                         value={newTeamName}
                         onChange={(e) => setNewTeamName(e.target.value)}
-                        placeholder="e.g. Jordan Hayes"
+                        placeholder="e.g. Amelia Clarke"
                       />
                     </label>
 
@@ -989,7 +1170,7 @@ export default function AdminManagementStudio() {
                         required
                         value={newTeamRole}
                         onChange={(e) => setNewTeamRole(e.target.value)}
-                        placeholder="e.g. Senior Mixing &amp; Mastering Engineer"
+                        placeholder="e.g. Founder, Mainahtunes Team"
                       />
                     </label>
                   </div>
@@ -1000,7 +1181,7 @@ export default function AdminManagementStudio() {
                       type="text"
                       value={newTeamDept}
                       onChange={(e) => setNewTeamDept(e.target.value)}
-                      placeholder="e.g. Audio Engineering &amp; Studio Production"
+                      placeholder="e.g. Creative Direction and Music Services"
                     />
                   </label>
 
@@ -1020,18 +1201,33 @@ export default function AdminManagementStudio() {
                       type="text"
                       value={newTeamCreds}
                       onChange={(e) => setNewTeamCreds(e.target.value)}
-                      placeholder="e.g. Multi-Track Audio Mixing, Dolby Atmos Calibration, Analog EQ Mastering"
+                      placeholder="e.g. Agency Founder &amp; Creative Direction, Music Production Vision"
                     />
                   </label>
 
-                  <button
-                    type="submit"
-                    className="button button-orange"
-                    disabled={teamLoading}
-                    style={{ marginTop: '8px' }}
-                  >
-                    {teamLoading ? 'Publishing Team Member...' : 'Publish Team Member to Live Site ↗'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                    <button
+                      type="submit"
+                      className="button button-orange"
+                      disabled={teamLoading}
+                      style={{ flex: 1 }}
+                    >
+                      {teamLoading
+                        ? 'Saving Changes...'
+                        : editingMemberId
+                        ? 'Save Changes to Team Member ↗'
+                        : 'Publish Team Member to Live Site ↗'}
+                    </button>
+                    {editingMemberId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditTeamMember}
+                        className="button button-outline"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
               </div>
 
@@ -1039,26 +1235,39 @@ export default function AdminManagementStudio() {
                 <h3>Live Team Member Architecture</h3>
                 <ul className="security-tips-list">
                   <li>
-                    <b>Direct Live Publishing:</b> Any team member added here is immediately published to the live <code>/team</code> page without waiting for a re-compile.
+                    <b>Direct Live Publishing &amp; Editing:</b> Any team member added or updated here is instantly synced to the live site and stored persistently.
                   </li>
                   <li>
-                    <b>Permanent Cloud Storage:</b> Portraits are saved permanently in cloud storage and mapped to the permanent team registry.
+                    <b>Change Anytime:</b> Click the <b>Edit</b> button on any team member below to modify their name, title, department, bio, or photo.
                   </li>
                   <li>
-                    <b>Instant Unpublish:</b> You can delete or unpublish custom members at any time using the red button on their card below.
+                    <b>Permanent Retention:</b> Roster changes persist across page reloads and browser sessions without disappearing.
                   </li>
                   <li>
-                    <b>Zero Database Required:</b> Backed by persistent cloud JSON storage, eliminating database costs and server maintenance.
+                    <b>Instant Unpublish:</b> You can delete or unpublish members at any time using the Unpublish button.
                   </li>
                 </ul>
               </div>
             </div>
 
-            <div className="panel-header" style={{ marginTop: '12px', borderTop: '1px solid var(--line)', paddingTop: '24px' }}>
+            <div className="panel-header" style={{ marginTop: '12px', borderTop: '1px solid var(--line)', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3>Active Team Roster ({allTeamMembers.length})</h3>
-                <p>Showing both baseline agency leaders and dynamically published team members.</p>
+                <h3 style={{ margin: 0 }}>Active Team Roster ({allTeamMembers.length})</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Manage, edit, or remove your team members below.
+                </p>
               </div>
+              {allTeamMembers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleCopyTeamCode}
+                  className="button button-outline"
+                  style={{ fontSize: '11px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  title="Copy formatted TypeScript code to clipboard"
+                >
+                  <Copy size={13} /> Copy Team Code (for data/team.ts)
+                </button>
+              )}
             </div>
 
             <div className="admin-team-list">
@@ -1071,7 +1280,6 @@ export default function AdminManagementStudio() {
                 </div>
               ) : (
                 allTeamMembers.map((m) => {
-                const isCustom = customTeamMembers.some((c) => c.id === m.id);
                 return (
                   <div className="admin-team-row" key={m.id}>
                     <div className="team-avatar-box">
@@ -1080,7 +1288,16 @@ export default function AdminManagementStudio() {
                     <div className="team-details">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span className="role-tag">{m.role}</span>
-                        {isCustom ? (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditTeamMember(m)}
+                            className="button button-outline"
+                            style={{ padding: '3px 8px', fontSize: '11px', color: 'var(--orange)', borderColor: 'rgba(255, 107, 0, 0.4)' }}
+                            title="Edit / Change team member details"
+                          >
+                            <Edit3 size={12} style={{ display: 'inline', marginRight: '4px' }} /> Edit
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteTeamMember(m.id, m.name)}
@@ -1090,17 +1307,13 @@ export default function AdminManagementStudio() {
                           >
                             <Trash2 size={12} style={{ display: 'inline', marginRight: '4px' }} /> Unpublish
                           </button>
-                        ) : (
-                          <span style={{ fontSize: '10px', color: 'var(--orange)', fontWeight: 700, letterSpacing: '0.08em' }}>
-                            CORE LEADERSHIP
-                          </span>
-                        )}
+                        </div>
                       </div>
                       <h3>{m.name}</h3>
                       <p className="team-dept">{m.department}</p>
                       <p className="team-bio-text">{m.bio}</p>
                       <div className="team-creds">
-                        {m.credentials.map((c) => (
+                        {m.credentials && m.credentials.map((c) => (
                           <span key={c}><CheckCircle2 size={13} /> {c}</span>
                         ))}
                       </div>
@@ -1203,49 +1416,124 @@ export default function AdminManagementStudio() {
                     </div>
                   </label>
 
-                  {/* Dropzone */}
-                  <div
-                    className="file-dropzone-box"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept={
-                        uploadCategory === 'artwork'
-                          ? 'image/png,image/jpeg,image/webp'
-                          : uploadCategory === 'audio'
-                          ? 'audio/mp3,audio/wav,audio/mpeg'
-                          : 'video/mp4,video/webm'
-                      }
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setUploadFile(e.target.files[0]);
-                          if (!uploadTitle) {
-                            setUploadTitle(e.target.files[0].name.replace(/\.[^/.]+$/, ''));
-                          }
-                        }
-                      }}
-                    />
-                    <div className="dropzone-label">
-                      <UploadCloud size={32} className="text-orange" />
-                      <b>Click to browse or drag file here</b>
-                      <span>
-                        {uploadCategory === 'artwork'
-                          ? 'Supports PNG, JPG, WebP up to 3000x3000px'
-                          : uploadCategory === 'audio'
-                          ? 'Supports 24-bit WAV & MP3 audio files'
-                          : 'Supports H.264 MP4 & WebM video files'}
-                      </span>
-                    </div>
-
-                    {uploadFile && (
-                      <div className="selected-file-badge">
-                        <Check size={14} className="text-orange" />
-                        <span>Selected: <b>{uploadFile.name}</b> ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                  {/* Video Mode Selector (URL or File) */}
+                  {uploadCategory === 'video' && (
+                    <div style={{ marginBottom: '14px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>
+                        Video Delivery Mode
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className={uploadVideoMode === 'url' ? 'button button-orange' : 'button button-outline'}
+                          style={{ fontSize: '11px', padding: '6px 14px' }}
+                          onClick={() => {
+                            setUploadVideoMode('url');
+                            setUploadFile(null);
+                          }}
+                        >
+                          <Link2 size={13} style={{ display: 'inline', marginRight: '5px' }} />
+                          Paste Video URL / Stream (No Size Limit)
+                        </button>
+                        <button
+                          type="button"
+                          className={uploadVideoMode === 'file' ? 'button button-orange' : 'button button-outline'}
+                          style={{ fontSize: '11px', padding: '6px 14px' }}
+                          onClick={() => {
+                            setUploadVideoMode('file');
+                            setUploadVideoUrl('');
+                          }}
+                        >
+                          <FileVideo size={13} style={{ display: 'inline', marginRight: '5px' }} />
+                          Upload Small Video File (&lt;4.5 MB)
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* Video URL Input */}
+                  {uploadCategory === 'video' && uploadVideoMode === 'url' ? (
+                    <div style={{ marginBottom: '16px' }}>
+                      <label>
+                        Video Stream URL or Embed Link *
+                        <input
+                          type="url"
+                          required
+                          value={uploadVideoUrl}
+                          onChange={(e) => setUploadVideoUrl(e.target.value)}
+                          placeholder="e.g. YouTube, Vimeo, Google Drive share link, or direct MP4 URL"
+                        />
+                      </label>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        ✨ Supports YouTube, Vimeo, Google Drive preview links, and direct cloud MP4 URLs. Zero upload time and no file size limit!
+                      </div>
+                    </div>
+                  ) : (
+                    /* Dropzone */
+                    <div style={{ marginBottom: '16px' }}>
+                      <div
+                        className="file-dropzone-box"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept={
+                            uploadCategory === 'artwork'
+                              ? 'image/png,image/jpeg,image/webp'
+                              : uploadCategory === 'audio'
+                              ? 'audio/mp3,audio/wav,audio/mpeg'
+                              : 'video/mp4,video/webm'
+                          }
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setUploadFile(e.target.files[0]);
+                              if (!uploadTitle) {
+                                setUploadTitle(e.target.files[0].name.replace(/\.[^/.]+$/, ''));
+                              }
+                            }
+                          }}
+                        />
+                        <div className="dropzone-label">
+                          <UploadCloud size={32} className="text-orange" />
+                          <b>Click to browse or drag file here</b>
+                          <span>
+                            {uploadCategory === 'artwork'
+                              ? 'Supports PNG, JPG, WebP up to 3000x3000px'
+                              : uploadCategory === 'audio'
+                              ? 'Supports 24-bit WAV & MP3 audio files'
+                              : 'Supports H.264 MP4 & WebM video files (under 4.5 MB)'}
+                          </span>
+                        </div>
+
+                        {uploadFile && (
+                          <div className="selected-file-badge">
+                            <Check size={14} className="text-orange" />
+                            <span>
+                              Selected: <b>{uploadFile.name}</b> ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {uploadFile && uploadFile.size > 4.5 * 1024 * 1024 && (
+                        <div
+                          className="security-alert error"
+                          style={{ marginTop: '10px', fontSize: '12px' }}
+                          role="alert"
+                        >
+                          <AlertCircle size={16} />
+                          <div>
+                            <b>File is {(uploadFile.size / 1024 / 1024).toFixed(1)} MB (Exceeds 4.5 MB Limit)</b>
+                            <p style={{ margin: '4px 0 0' }}>
+                              Vercel serverless functions strictly reject direct web uploads larger than 4.5 MB.
+                              Please switch to <b>&quot;Paste Video URL / Stream&quot;</b> above to link this video via YouTube, Vimeo, Google Drive, or cloud storage.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <label>
                     Project / Release Title

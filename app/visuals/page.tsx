@@ -327,15 +327,44 @@ export default function ReviewMyWorksPage() {
             {filteredVideos.map((video) => (
               <article className="ai-video-card" key={video.id}>
                 <div className="ai-video-frame">
-                  <video
-                    controls
-                    preload="metadata"
-                    playsInline
-                    aria-label={video.title}
-                  >
-                    <source src={video.videoSrc} type="video/mp4" />
-                    Your browser does not support HTML5 video playback.
-                  </video>
+                  {video.videoSrc.includes('youtube.com') || video.videoSrc.includes('youtu.be') ? (
+                    <iframe
+                      src={
+                        video.videoSrc.includes('youtu.be/')
+                          ? `https://www.youtube.com/embed/${video.videoSrc.split('youtu.be/')[1]?.split('?')[0]}`
+                          : `https://www.youtube.com/embed/${video.videoSrc.split('v=')[1]?.split('&')[0] || ''}`
+                      }
+                      title={video.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      style={{ width: '100%', height: '100%', minHeight: '320px', border: 'none' }}
+                    />
+                  ) : video.videoSrc.includes('vimeo.com') ? (
+                    <iframe
+                      src={`https://player.vimeo.com/video/${video.videoSrc.split('vimeo.com/')[1]?.split('?')[0]}`}
+                      title={video.title}
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                      style={{ width: '100%', height: '100%', minHeight: '320px', border: 'none' }}
+                    />
+                  ) : video.videoSrc.includes('drive.google.com') ? (
+                    <iframe
+                      src={video.videoSrc.replace(/\/view(\?.*)?$/, '/preview')}
+                      title={video.title}
+                      allow="autoplay"
+                      style={{ width: '100%', height: '100%', minHeight: '320px', border: 'none' }}
+                    />
+                  ) : (
+                    <video
+                      controls
+                      preload="metadata"
+                      playsInline
+                      aria-label={video.title}
+                    >
+                      <source src={video.videoSrc} type="video/mp4" />
+                      Your browser does not support HTML5 video playback.
+                    </video>
+                  )}
                 </div>
                 <div className="ai-video-meta">
                   <div>

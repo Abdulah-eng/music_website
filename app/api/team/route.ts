@@ -43,14 +43,17 @@ export async function POST(req: NextRequest) {
     const bio = (formData.get('bio') as string)?.trim() || 'Creative specialist at Mainahtunes Team.';
     const credentialsRaw = formData.get('credentials') as string | null;
 
+    const existingId = (formData.get('id') as string)?.trim();
+    const existingImage = (formData.get('existingImage') as string)?.trim();
+
     if (!name || !role) {
       return NextResponse.json(
-        { error: 'Name and Role are required to add a new team member.' },
+        { error: 'Name and Role are required to add or update a team member.' },
         { status: 400 }
       );
     }
 
-    let imageUrl = '/team/amelia-clarke.jpeg';
+    let imageUrl = existingImage || '/team/amelia-clarke.jpeg';
 
     // 1. Upload photo to permanent external cloud storage if provided
     if (photo && photo.size > 0) {
@@ -83,8 +86,8 @@ export async function POST(req: NextRequest) {
       ];
     }
 
-    // 3. Create structured TeamMember record
-    const memberId = `member-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now().toString(36)}`;
+    // 3. Create or update structured TeamMember record
+    const memberId = existingId || `member-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now().toString(36)}`;
     const newMember: TeamMember = {
       id: memberId,
       name,
@@ -111,6 +114,10 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function PUT(req: NextRequest) {
+  return POST(req);
 }
 
 export async function DELETE(req: NextRequest) {

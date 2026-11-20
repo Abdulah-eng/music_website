@@ -8,50 +8,8 @@ export interface TeamMember {
   credentials: string[];
 }
 
-export const teamMembers: TeamMember[] = [
-  {
-    id: 'amelia-clarke',
-    name: 'Amelia Clarke',
-    role: 'Founder, Mainahtunes Team',
-    department: 'Creative Direction and Music Services',
-    image: '/team/amelia-clarke.jpeg',
-    bio: 'As the founder of Mainahtunes Team, Amelia Clarke directs the core creative philosophy, multi-disciplinary production standards, and international artist partnerships for the agency. She leads high-level creative direction across music engineering, visual storytelling, and digital identity to ensure independent artists and labels build a commanding, world-class presence.',
-    credentials: [
-      'Agency Founder & Executive Creative Direction',
-      'Comprehensive Music Production & Rollout Vision',
-      'Artist Brand Identity & Sonic Cohesion',
-      'International Label & Studio Partnerships',
-    ],
-  },
-  {
-    id: 'oliver-bennett',
-    name: 'Oliver Bennett',
-    role: 'Video Production Director',
-    department: 'Video Production',
-    image: '/team/oliver-bennett.jpeg',
-    bio: "Oliver Bennett leads video production at Mainahtunes Team. He oversees the planning, creative direction, and production of music videos and visual content. He works to bring artists' ideas to life through engaging visuals, professional editing, and high-quality storytelling.",
-    credentials: [
-      'Music Video Creative Direction & Scripting',
-      'Cinematography & Narrative 4K Video Editing',
-      'AI Motion Synthesis & Dynamic Visualizers',
-      'Cinematic Color Grading & Final Delivery',
-    ],
-  },
-  {
-    id: 'sophie-mitchell',
-    name: 'Sophie Mitchell',
-    role: 'Client Success and Operations Manager',
-    department: 'Client Relations and Operations',
-    image: '/team/sophie-mitchell.jpeg',
-    bio: 'Sophie Mitchell manages client communication and daily client support at Mainahtunes Team. She listens to clients, understands their creative vision, responds to enquiries, and helps resolve concerns throughout each project. She also coordinates messages between clients and the team, follows up on project progress, and ensures clients receive clear updates and a smooth experience from start to finish.',
-    credentials: [
-      'Client Experience & Strategic Communication',
-      'Project Coordination & Delivery Tracking',
-      'Creative Vision Onboarding & Feedback Rounds',
-      'Cross-Departmental Timeline Management',
-    ],
-  },
-];
+// Baseline team members array left empty - manage and add team members manually via the Admin Panel (/admin)
+export const teamMembers: TeamMember[] = [];
 
 export const upcomingRoles = [
   {
