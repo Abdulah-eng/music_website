@@ -15,36 +15,53 @@ export default function TeamMemberList({ initialMembers }: Props) {
   const [members, setMembers] = useState<TeamMember[]>(initialMembers);
 
   useEffect(() => {
-    // 1. Fetch live team roster from API (merges baseline with cloud-stored members)
+    // 1. Immediately read localStorage to show any client-side added members
+    let localMembers: TeamMember[] = [];
+    try {
+      const local = localStorage.getItem('mainahtunes_custom_team');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localMembers = parsed;
+          setMembers((prev) => {
+            const map = new Map<string, TeamMember>();
+            localMembers.forEach((m) => map.set(m.id, m));
+            prev.forEach((m) => {
+              if (!map.has(m.id)) map.set(m.id, m);
+            });
+            return Array.from(map.values());
+          });
+        }
+      }
+    } catch {}
+
+    // 2. Fetch live team roster from API (merges baseline with cloud-stored members)
     fetch('/api/team')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch team members');
         return res.json();
       })
       .then((data) => {
-        if (data && data.teamMembers && Array.isArray(data.teamMembers)) {
-          setMembers(data.teamMembers);
-        }
+        const serverList: TeamMember[] =
+          data && data.teamMembers && Array.isArray(data.teamMembers) && data.teamMembers.length > 0
+            ? data.teamMembers
+            : initialMembers;
+
+        setMembers(() => {
+          const map = new Map<string, TeamMember>();
+          // Custom local team members take priority or merge
+          localMembers.forEach((m) => map.set(m.id, m));
+          // Server / baseline team members
+          serverList.forEach((m) => {
+            if (!map.has(m.id)) map.set(m.id, m);
+          });
+          return Array.from(map.values());
+        });
       })
       .catch((err) => {
         console.warn('Using baseline team roster:', err);
       });
-
-    // 2. Client-side browser sync for instant preview
-    try {
-      const local = localStorage.getItem('mainahtunes_custom_team');
-      if (local) {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMembers((prev) => {
-            const existingIds = new Set(prev.map((m) => m.id));
-            const newMembers = parsed.filter((m: any) => !existingIds.has(m.id));
-            return [...newMembers, ...prev];
-          });
-        }
-      }
-    } catch {}
-  }, []);
+  }, [initialMembers]);
 
   if (members.length === 0) {
     return (

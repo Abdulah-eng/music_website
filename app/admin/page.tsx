@@ -137,14 +137,53 @@ export default function AdminManagementStudio() {
         return res.json();
       })
       .then((data) => {
-        if (data.teamMembers && Array.isArray(data.teamMembers)) {
-          setAllTeamMembers(data.teamMembers);
-        }
-        if (data.customTeamMembers && Array.isArray(data.customTeamMembers)) {
-          setCustomTeamMembers(data.customTeamMembers);
-        }
+        let localCustom: TeamMember[] = [];
+        try {
+          const stored = localStorage.getItem('mainahtunes_custom_team');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) localCustom = parsed;
+          }
+        } catch {}
+
+        const serverTeam: TeamMember[] = Array.isArray(data.teamMembers) ? data.teamMembers : [];
+        const serverCustom: TeamMember[] = Array.isArray(data.customTeamMembers) ? data.customTeamMembers : [];
+
+        // Merge custom team members from server and localStorage
+        const customMap = new Map<string, TeamMember>();
+        serverCustom.forEach((m) => customMap.set(m.id, m));
+        localCustom.forEach((m) => customMap.set(m.id, m));
+        const mergedCustom = Array.from(customMap.values());
+        setCustomTeamMembers(mergedCustom);
+
+        // Merge all team members: custom + baseline
+        const allMap = new Map<string, TeamMember>();
+        mergedCustom.forEach((m) => allMap.set(m.id, m));
+        serverTeam.forEach((m) => {
+          if (!allMap.has(m.id)) allMap.set(m.id, m);
+        });
+        setAllTeamMembers(Array.from(allMap.values()));
       })
-      .catch((err) => console.warn('Team load err:', err));
+      .catch((err) => {
+        console.warn('Team load err:', err);
+        try {
+          const stored = localStorage.getItem('mainahtunes_custom_team');
+          if (stored) {
+            const list = JSON.parse(stored);
+            if (Array.isArray(list)) {
+              setCustomTeamMembers(list);
+              setAllTeamMembers((prev) => {
+                const map = new Map<string, TeamMember>();
+                list.forEach((m: any) => map.set(m.id, m));
+                prev.forEach((m) => {
+                  if (!map.has(m.id)) map.set(m.id, m);
+                });
+                return Array.from(map.values());
+              });
+            }
+          }
+        } catch {}
+      });
   };
 
   // Helper: Retrieve active stored password or default 'helloworld'
