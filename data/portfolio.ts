@@ -252,9 +252,20 @@ export const artworkCatalog: ArtworkProject[] = [
 ];
 
 // =========================================================================
-// 2 PRESERVED ORIGINAL AI MUSIC VIDEOS (Supplied by Client)
+// PRESERVED ORIGINAL MUSIC VIDEOS (Supplied by Client)
 // =========================================================================
 export const videoCatalog: VideoProject[] = [
+  {
+    id: 'vid-blinding-love',
+    title: 'Blinding Love — Cinematic Music Video',
+    type: 'AI-Assisted Music Video',
+    videoSrc: '/Blinding Love.mp4',
+    poster: '/blinding-love-poster.jpg',
+    description: 'Official client music video release for "Blinding Love". Features emotive visual storytelling, dynamic cinematography, synchronized beat edits, and bespoke atmosphere created by MainahtunesTeam.',
+    duration: '01:49',
+    aspectRatio: '16:9',
+    relatedServiceSlug: 'ai-assisted-music-videos',
+  },
   {
     id: 'vid-01',
     title: 'AI Music Video — Portfolio Reel 01',

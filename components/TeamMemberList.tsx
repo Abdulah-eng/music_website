@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { CheckCircle2, MessageCircle } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Sparkles, Star, ArrowUpRight } from 'lucide-react';
 import type { TeamMember } from '@/data/team';
 import { siteConfig } from '@/data/siteConfig';
 
@@ -49,9 +49,7 @@ export default function TeamMemberList({ initialMembers }: Props) {
 
         setMembers(() => {
           const map = new Map<string, TeamMember>();
-          // Custom local team members take priority or merge
           localMembers.forEach((m) => map.set(m.id, m));
-          // Server / baseline team members
           serverList.forEach((m) => {
             if (!map.has(m.id)) map.set(m.id, m);
           });
@@ -98,65 +96,175 @@ export default function TeamMemberList({ initialMembers }: Props) {
     );
   }
 
+  // Identify the Founder to position prominently at the top
+  const founder =
+    members.find(
+      (m) =>
+        m.role.toLowerCase().includes('founder') ||
+        m.name.toLowerCase().includes('amelia')
+    ) || members[0];
+
+  // The rest of the team members follow beneath
+  const followers = founder ? members.filter((m) => m.id !== founder.id) : [];
+
   return (
-    <div className="team-detailed-grid">
-      {members.map((member) => (
-        <article className="team-detailed-card" key={member.id}>
-          <div className="team-photo-column">
-            <div className="team-photo-frame">
-              <Image
-                src={member.image || '/team/amelia-clarke.jpeg'}
-                alt={`${member.name}, ${member.role}`}
-                width={800}
-                height={1000}
-                priority
-                unoptimized
-              />
-              <div className="photo-tag-overlay">
-                <span>{member.department.toUpperCase()}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="team-info-column">
-            <span className="team-role-pill">{member.role}</span>
-            <h2>{member.name}</h2>
-            <p className="team-bio-lead">{member.bio}</p>
-
-            <div className="team-credentials-box">
-              <small>CORE RESPONSIBILITIES &amp; EXPERTISE</small>
-              <div className="credentials-grid">
-                {member.credentials.map((cred) => (
-                  <div key={cred} className="cred-item">
-                    <CheckCircle2 size={15} />
-                    <span>{cred}</span>
+    <div className="team-hierarchy-wrapper">
+      {/* =========================================================================
+          1. FOUNDER PROMINENT SPOTLIGHT (ALWAYS ON TOP)
+         ========================================================================= */}
+      {founder && (
+        <section className="founder-spotlight-section" aria-label="Agency Founder">
+          <div className="founder-spotlight-card">
+            <div className="founder-photo-column">
+              <div className="founder-photo-frame">
+                <Image
+                  src={founder.image || '/team/amelia-clarke.jpeg'}
+                  alt={`${founder.name}, ${founder.role}`}
+                  width={900}
+                  height={1100}
+                  priority
+                  unoptimized
+                />
+                <div className="founder-photo-overlay">
+                  <div className="founder-crown-badge">
+                    <Sparkles size={12} />
+                    <span>FOUNDER &amp; EXECUTIVE DIRECTION</span>
                   </div>
-                ))}
+                  <span className="founder-dept-tag">{founder.department.toUpperCase()}</span>
+                </div>
               </div>
             </div>
 
-            <div className="team-contact-action" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <Link
-                href={`/contact?service=General%20Enquiry&project=${encodeURIComponent(
-                  `Attention: ${member.name} (${member.role})`
-                )}`}
-                className="button button-orange"
-              >
-                Enquire with {member.name.split(' ')[0]} <span>↗</span>
-              </Link>
-              <a
-                href={siteConfig.whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button button-outline"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              >
-                <MessageCircle size={14} color="#25D366" /> Chat on WhatsApp ↗
-              </a>
+            <div className="founder-info-column">
+              <div className="founder-header-line">
+                <span className="founder-lead-pill">
+                  <Star size={12} className="founder-star-icon" />
+                  FOUNDER &middot; EXECUTIVE LEADERSHIP
+                </span>
+                <span className="founder-role-sub">{founder.role}</span>
+              </div>
+
+              <h2 className="founder-name">{founder.name}</h2>
+              <div className="founder-dept-sub">{founder.department}</div>
+
+              <p className="founder-bio">{founder.bio}</p>
+
+              {founder.credentials && founder.credentials.length > 0 && (
+                <div className="founder-credentials-box">
+                  <small>EXECUTIVE RESPONSIBILITIES &amp; STRATEGY</small>
+                  <div className="founder-credentials-grid">
+                    {founder.credentials.map((cred) => (
+                      <div key={cred} className="founder-cred-item">
+                        <CheckCircle2 size={15} />
+                        <span>{cred}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="founder-contact-actions">
+                <Link
+                  href={`/contact?service=General%20Enquiry&project=${encodeURIComponent(
+                    `Attention: ${founder.name} (${founder.role})`
+                  )}`}
+                  className="button button-orange"
+                >
+                  Consult with {founder.name.split(' ')[0]} <span>↗</span>
+                </Link>
+                <a
+                  href={siteConfig.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button button-outline"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <MessageCircle size={15} color="#25D366" /> Chat on WhatsApp <span>↗</span>
+                </a>
+              </div>
             </div>
           </div>
-        </article>
-      ))}
+        </section>
+      )}
+
+      {/* =========================================================================
+          2. OTHER TEAM MEMBERS (FOLLOWING BENEATH IN AN ORGANIZED GRID)
+         ========================================================================= */}
+      {followers.length > 0 && (
+        <section className="team-followers-section" aria-label="Executive & Production Team">
+          <div className="team-followers-header">
+            <div>
+              <div className="eyebrow">EXECUTIVE &amp; PRODUCTION TEAM</div>
+              <h3>Production, Operations &amp; Client Success</h3>
+            </div>
+            <p>
+              Collaborating seamlessly with the founder to lead cinematic video direction, audio engineering,
+              and end-to-end client communications.
+            </p>
+          </div>
+
+          <div className="team-followers-grid">
+            {followers.map((member) => (
+              <article className="team-follower-card" key={member.id}>
+                <div className="team-follower-photo-wrapper">
+                  <div className="team-follower-photo">
+                    <Image
+                      src={member.image || '/team/oliver-bennett.jpeg'}
+                      alt={`${member.name}, ${member.role}`}
+                      width={700}
+                      height={850}
+                      unoptimized
+                    />
+                    <div className="team-follower-dept-tag">
+                      <span>{member.department.toUpperCase()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="team-follower-content">
+                  <span className="team-follower-role">{member.role.toUpperCase()}</span>
+                  <h4 className="team-follower-name">{member.name}</h4>
+                  <p className="team-follower-bio">{member.bio}</p>
+
+                  {member.credentials && member.credentials.length > 0 && (
+                    <div className="team-follower-credentials">
+                      <small>KEY CAPABILITIES</small>
+                      <div className="team-follower-cred-list">
+                        {member.credentials.map((cred) => (
+                          <div key={cred} className="team-follower-cred-item">
+                            <CheckCircle2 size={13} />
+                            <span>{cred}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="team-follower-actions">
+                    <Link
+                      href={`/contact?service=General%20Enquiry&project=${encodeURIComponent(
+                        `Attention: ${member.name} (${member.role})`
+                      )}`}
+                      className="button button-orange button-sm"
+                    >
+                      Enquire with {member.name.split(' ')[0]} <span>↗</span>
+                    </Link>
+                    <a
+                      href={siteConfig.whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="button button-outline button-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <MessageCircle size={13} color="#25D366" /> WhatsApp <span>↗</span>
+                    </a>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

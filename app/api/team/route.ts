@@ -13,6 +13,15 @@ export async function GET() {
     const customIds = new Set(customTeam.map((m) => m.id));
     const merged = [...customTeam, ...baselineTeam.filter((m) => !customIds.has(m.id))];
 
+    // Guarantee the Founder is sorted to the top
+    merged.sort((a, b) => {
+      const aIsFounder = a.role.toLowerCase().includes('founder') || a.name.toLowerCase().includes('amelia');
+      const bIsFounder = b.role.toLowerCase().includes('founder') || b.name.toLowerCase().includes('amelia');
+      if (aIsFounder && !bIsFounder) return -1;
+      if (!aIsFounder && bIsFounder) return 1;
+      return 0;
+    });
+
     return NextResponse.json({
       success: true,
       teamMembers: merged,

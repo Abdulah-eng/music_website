@@ -1004,7 +1004,7 @@ export default function AdminManagementStudio() {
                       style={{ width: '100%', aspectRatio: '16/9', border: 'none', borderRadius: '6px' }}
                     />
                   ) : (
-                    <video controls src={v.videoSrc} className="service-sample-video" preload="metadata" />
+                    <video controls src={v.videoSrc} poster={v.poster} className="service-sample-video" preload="metadata" />
                   )}
                   <span className="style-tag" style={{ marginTop: '8px' }}>{v.type}</span>
                   <h3>{v.title}</h3>
@@ -1279,7 +1279,15 @@ export default function AdminManagementStudio() {
                   </p>
                 </div>
               ) : (
-                allTeamMembers.map((m) => {
+                [...allTeamMembers]
+                  .sort((a, b) => {
+                    const aIsFounder = a.role.toLowerCase().includes('founder') || a.name.toLowerCase().includes('amelia');
+                    const bIsFounder = b.role.toLowerCase().includes('founder') || b.name.toLowerCase().includes('amelia');
+                    if (aIsFounder && !bIsFounder) return -1;
+                    if (!aIsFounder && bIsFounder) return 1;
+                    return 0;
+                  })
+                  .map((m) => {
                 return (
                   <div className="admin-team-row" key={m.id}>
                     <div className="team-avatar-box">

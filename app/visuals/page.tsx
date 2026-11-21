@@ -359,6 +359,7 @@ export default function ReviewMyWorksPage() {
                       controls
                       preload="metadata"
                       playsInline
+                      poster={video.poster}
                       aria-label={video.title}
                     >
                       <source src={video.videoSrc} type="video/mp4" />
